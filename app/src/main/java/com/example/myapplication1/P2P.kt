@@ -1,11 +1,11 @@
 package com.example.myapplication1
 
-import Cmd
 import CustomSDPClass
 import OfferExtras
 import PackedOffer
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
-import android.widget.Toast
 import com.example.myapplication1.NetworkUtils.Companion.shopApi
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.DelicateCoroutinesApi
@@ -25,7 +25,7 @@ import org.webrtc.RtpReceiver
 import org.webrtc.SdpObserver
 import org.webrtc.SessionDescription
 import org.webrtc.SessionDescription.Type
-import java.nio.ByteBuffer
+import java.util.concurrent.CompletableFuture
 
 
 var localPeer: PeerConnection? = null
@@ -34,11 +34,17 @@ var localOffer: CustomSDPClass? = null
 val iceServers: MutableList<IceServer> = ArrayList()
 var deviceUUID = ""
 var mainViewModel: MainViewModel? = null
+var globalViewModel: MainViewModel? = null
 var browserViewModel: BrowserViewModel? = null
 var peerConnectionFactory: PeerConnectionFactory? = null
 var mainContext: MainActivity? = null
 
-fun prepareP2P(context: MainActivity) {
+val promises: MutableMap<String, CompletableFuture<String>> = mutableMapOf()
+
+fun startP2P(context: MainActivity) {
+    /*callbacks["f1"] = { println("invoked f1") }
+    println(callbacks)
+    callbacks["f1"]?.invoke()*/
     mainContext = context
     PeerConnectionFactory.initialize(
         PeerConnectionFactory.InitializationOptions.builder(context).createInitializationOptions()
@@ -77,8 +83,10 @@ fun prepareP2P(context: MainActivity) {
 
 fun connectPeer() {
     if (localPeer == null) {
-        Toast.makeText(mainContext, "Peer start", Toast.LENGTH_SHORT).show()
-        mainViewModel!!.p2pState.value = "connecting"
+        //Toast.makeText(mainContext, "Peer start", Toast.LENGTH_SHORT).show()
+        mainContext!!.runOnUiThread(Runnable {
+            mainViewModel!!.p2pState.value = "connecting"
+        })
         localPeer = peerConnectionFactory!!.createPeerConnection(iceServers, getPCObserver())
         dataChannel = localPeer!!.createDataChannel(
             "dataChannel-${timeID()}", DataChannel.Init()
@@ -95,54 +103,30 @@ fun connectPeer() {
                 }
 
                 override fun onSetSuccess() {
-                    TODO("Not yet implemented")
+                    println("Offer set success")
                 }
 
                 override fun onCreateFailure(p0: String?) {
-                    TODO("Not yet implemented")
+                    println("Offer create failed")
                 }
 
                 override fun onSetFailure(p0: String?) {
-                    TODO("Not yet implemented")
+                    println("Offer set failed")
                 }
             }, mediaConstraints
         )
     } else {
-        Toast.makeText(
+        /*Toast.makeText(
             mainContext,
             "Peer status ${localPeer!!.connectionState().name}",
             Toast.LENGTH_SHORT
-        ).show()
-    }
-}
-
-fun sendData(data: String) {
-    if (dataChannel!!.state().name == "OPEN") {
-        val buffer = ByteBuffer.wrap(data.toByteArray())
-        dataChannel!!.send(DataChannel.Buffer(buffer, false))
-    } else {
-        println("Data channel not open")
-    }
-}
-
-fun handleCmd(cmd: Cmd) {
-    when (cmd.cmd) {
-        "reqImg" -> {
-            val b64 = cmd.load!!.img!!.replace("data:image/webp;base64,", "")
-                .replace("data:image/jpeg;base64,", "").replace("data:image/png;base64,", "");
-            val bitmap = decodePicString(b64)
-            mainViewModel!!.logoImage = bitmap
-        }
-
-        else -> println(cmd)
+        ).show()*/
     }
 }
 
 fun getDataChannelObserver(dataChannel: DataChannel): DataChannel.Observer {
     val dcO = object : DataChannel.Observer {
-        override fun onBufferedAmountChange(amount: Long) {
-            println("Bytes received $amount")
-        }
+        override fun onBufferedAmountChange(amount: Long) {}
 
         override fun onStateChange() {
             val state = dataChannel.state()
@@ -154,13 +138,7 @@ fun getDataChannelObserver(dataChannel: DataChannel): DataChannel.Observer {
         }
 
         override fun onMessage(buffer: DataChannel.Buffer?) {
-            val data: ByteBuffer = buffer!!.data
-            val bytes = ByteArray(data.remaining())
-            data.get(bytes);
-            val resp = String(bytes)
-            val cmd = gson.fromJson(resp, Cmd::class.java)
-            println(cmd)
-            handleCmd(cmd)
+            receiveData(buffer)
         }
     }
     return dcO
@@ -171,19 +149,19 @@ fun getLocalSdpObserver(peer: PeerConnection): SdpObserver {
         override fun onCreateSuccess(sessionDescription: SessionDescription) {
             peer.setLocalDescription(object : SdpObserver {
                 override fun onCreateSuccess(p0: SessionDescription?) {
-                    TODO("Not yet implemented")
+                    println("Local description create success")
                 }
 
                 override fun onSetSuccess() {
-                    TODO("Not yet implemented")
+                    println("Local description set success")
                 }
 
                 override fun onCreateFailure(p0: String?) {
-                    TODO("Not yet implemented")
+                    println("Local description create failure")
                 }
 
                 override fun onSetFailure(p0: String?) {
-                    TODO("Not yet implemented")
+                    println("Local description set failure")
                 }
             }, sessionDescription)
         }
@@ -206,19 +184,19 @@ fun getRemoteSdpObserver(peer: PeerConnection): SdpObserver {
         override fun onCreateSuccess(sessionDescription: SessionDescription) {
             peer.setLocalDescription(object : SdpObserver {
                 override fun onCreateSuccess(p0: SessionDescription?) {
-                    TODO("Not yet implemented")
+                    println("Remote description create success")
                 }
 
                 override fun onSetSuccess() {
-                    TODO("Not yet implemented")
+                    println("Remote description set success")
                 }
 
                 override fun onCreateFailure(p0: String?) {
-                    TODO("Not yet implemented")
+                    println("Remote description create failed")
                 }
 
                 override fun onSetFailure(p0: String?) {
-                    TODO("Not yet implemented")
+                    println("Remote description set failed")
                 }
             }, sessionDescription)
         }
@@ -247,6 +225,14 @@ fun getPCObserver(): PeerConnection.Observer {
 
         override fun onSignalingChange(signalingState: PeerConnection.SignalingState) {
             Log.d(TAG, "onSignalingChange")
+            val state = signalingState.name
+            if (state == "DISCONNECTED" || state == "CLOSED") {
+                mainContext!!.runOnUiThread(Runnable {
+                    Handler(Looper.getMainLooper()).postDelayed({
+                        connectPeer()
+                    }, 5000)
+                })
+            }
         }
 
         override fun onIceConnectionChange(onIceConnectionChange: PeerConnection.IceConnectionState) {
@@ -256,18 +242,35 @@ fun getPCObserver(): PeerConnection.Observer {
                 val state1 = localPeer!!.connectionState().name
                 println(state1)
                 println("Peer disconnected.")
-                mainViewModel!!.p2pState.postValue("offline")
+                mainContext!!.runOnUiThread(Runnable {
+                    mainViewModel!!.p2pState.value = "offline"
+                })
+                localPeer!!.dispose()
                 localPeer = null
+                /*mainContext!!.runOnUiThread(Runnable {
+                    Handler(Looper.getMainLooper()).postDelayed({
+                        connectPeer()
+                    }, 5000)
+                })*/
             }
             if (state == "FAILED") {
                 val state2 = localPeer!!.connectionState().name
                 println(state2)
                 println("Peer failed.")
-                mainViewModel!!.p2pState.postValue("offline")
+                mainContext!!.runOnUiThread(Runnable {
+                    mainViewModel!!.p2pState.value = "offline"
+                })
                 localPeer = null
             }
             if (state == "COMPLETED") {
-                mainViewModel!!.p2pState.postValue("online")
+                //mainViewModel!!.updateP2PSate("online")
+                //mainViewModel!!.p2pState.postValue("online")
+                //mainViewModel!!.p2pState.value = "online"
+                //mainViewModel!!.viewModelScope.launch { mainViewModel!!.p2pState.value = "online" }
+                mainContext!!.runOnUiThread(Runnable {
+                    mainViewModel!!.updateP2PSate("online")
+                    //mainViewModel!!.p2pState.value = "online"
+                })
             }
         }
 
@@ -301,7 +304,6 @@ fun getPCObserver(): PeerConnection.Observer {
                             SessionDescription(Type.ANSWER, customAnswer.sdp)
                         )
                     }
-                    Log.d("offer result: ", result.body().toString())
                 }
             }
         }

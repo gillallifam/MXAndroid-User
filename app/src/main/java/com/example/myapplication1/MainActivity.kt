@@ -1,7 +1,7 @@
 package com.example.myapplication1
 
-import Cmd
-import Load
+import Product
+import ImageModel
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.content.SharedPreferences
@@ -35,9 +35,12 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         mainViewModel = ViewModelProvider(this)[MainViewModel::class.java]
-        prepareP2P(this)
+        globalViewModel = mainViewModel
+        startP2P(this)
         val serviceIntent = Intent(this, P2PService::class.java)
         startService(serviceIntent)
+        //val items by mainViewModel!!.p2pState.collectAsState()
+        //val p2pstate = mainViewModel!!.p2pState.value
 
         setContent {
             MyApplication1Theme {
@@ -46,16 +49,17 @@ class MainActivity : ComponentActivity() {
                     verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
+                    //val items by mainViewModel!!.p2pState.observeAsState()
                     Text(
                         text = "Android webRTC",
                         modifier = Modifier.padding(20.dp)
                     )
-                    mainViewModel!!.p2pState.value?.let {
-                        Text(
-                            text = it,
-                            modifier = Modifier.padding(20.dp)
-                        )
-                    }
+
+                    Text(
+                        text = mainViewModel!!.p2pState.value.toString(),
+                        modifier = Modifier.padding(20.dp)
+                    )
+
                     Button(
                         //enabled = viewModel!!.p2pState == "offline",
                         onClick = {
@@ -64,15 +68,27 @@ class MainActivity : ComponentActivity() {
                         Text("Connect")
                     }
                     Button(onClick = {
-                        //val cmd = Cmd("testingUser", "${deviceUUID}>tst@android.mktpix")
-                        val cmd = Cmd(
-                            pid = genPid(),
-                            cmd = "reqImg",
-                            from = "${deviceUUID}>tst@android.mktpix",
-                            load = Load(cod = "00000000")
-                        )
-                        val payload = gson.toJson(cmd)
-                        sendData(payload)
+                        getImage("98740001").thenAccept { result ->
+                            val img = imageHandler(result)
+                            if (img != null) {
+                                println(img)
+                            } else {
+                                println("Img no data")
+                            }
+                        }
+
+                        getProduct("98740001").thenAccept { result ->
+                            if (result.isNotEmpty()) {
+                                try {
+                                    val resp = gson.fromJson(result, Product::class.java)
+                                    println(resp)
+                                } catch (e: Exception) {
+                                    println(e)
+                                }
+                            } else {
+                                println("getProduct no data")
+                            }
+                        }
                     }) {
                         Text("Msg")
                     }
@@ -98,9 +114,16 @@ class MainActivity : ComponentActivity() {
         }
         connectPeer()
         val p2pStateObserver = Observer<String> { stateStr ->
-            if (stateStr == "online") this.startActivity(Intent(this, BrowserActivity::class.java))
+            //if (stateStr == "online") this.startActivity(Intent(this, BrowserActivity::class.java))
         }
         mainViewModel!!.p2pState.observe(this, p2pStateObserver)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        if (localPeer != null) {
+            localPeer!!.dispose()
+        }
     }
 }
 

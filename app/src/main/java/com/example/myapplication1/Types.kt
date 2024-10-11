@@ -1,5 +1,3 @@
-import com.google.gson.JsonObject
-
 data class OfferExtras(
     val peerOwner: String,
     val peerProfType: String = "user",
@@ -23,11 +21,22 @@ data class PackedOffer(
 )
 
 data class Cmd(
-    val pid: String,
+    var pid: String? = null,
     val cmd: String,
     val age: Int? = null,
     val from: String,
-    val load: Load? = null,
+    val load: Any? = null,
+)
+data class CmdResp(
+    var pid: String? = null,
+    val cmd: String,
+    var success: Boolean = false,
+    val content: String,
+)
+
+data class ImageModel(
+    var cod: String? = null,
+    val img: String,
 )
 
 data class Product(
@@ -43,7 +52,7 @@ data class Product(
     val provider: String,
     val categories: Array<String>,
     val notify: String,
-    val active: Int,
+    val active: Boolean,
     val showStock: Boolean,
     val hasOptionals: Boolean,
     val hasSizes: Boolean,

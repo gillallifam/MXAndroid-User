@@ -5,10 +5,6 @@ import retrofit2.converter.gson.GsonConverterFactory
 
 class NetworkUtils {
 
-    ///makeOffer
-    //val signalClient = getRetrofitInstance("https://144_022_213_047.marketpix.com.br:9510")
-
-
     companion object {
 
         /** Retorna uma Instância do Client Retrofit para Requisições
