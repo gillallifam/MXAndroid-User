@@ -1,4 +1,4 @@
-package com.example.myapplication1.P2P
+package com.example.myapplication1.p2pNet
 
 import Cmd
 import CmdResp
@@ -51,7 +51,7 @@ fun receiveData(buffer: DataChannel.Buffer?) {
     }
 }
 
-fun peerPing(): CompletableFuture<String> {
+fun peerPing2(): CompletableFuture<String> {
     return sendData(
         Cmd(
             cmd = "ping2",

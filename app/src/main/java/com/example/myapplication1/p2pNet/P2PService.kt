@@ -1,10 +1,10 @@
-package com.example.myapplication1.P2P
+package com.example.myapplication1.p2pNet
 
 import android.app.Service
 import android.content.Intent
 import android.os.IBinder
 
-class P2PService : Service() {
+class P2PService2 : Service() {
     override fun onBind(intent: Intent?): IBinder? {
         return null
     }

@@ -22,44 +22,29 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
-import com.example.myapplication1.P2P.P2PService
-import com.example.myapplication1.P2P.connectPeer
-import com.example.myapplication1.P2P.deviceUUID
-import com.example.myapplication1.P2P.getImage
-import com.example.myapplication1.P2P.localPeer
-import com.example.myapplication1.P2P.mainViewModel
-import com.example.myapplication1.P2P.peerPing
-import com.example.myapplication1.P2P.sharedViewModel
-import com.example.myapplication1.P2P.startP2P
+import com.example.myapplication1.p2pNet.P2PService2
+import com.example.myapplication1.p2pNet.P2PViewModel
+import com.example.myapplication1.p2pNet.connectPeer
+import com.example.myapplication1.p2pNet.deviceUUID
+import com.example.myapplication1.p2pNet.localPeer
+import com.example.myapplication1.p2pNet.mainViewModel
+import com.example.myapplication1.p2pNet.p2pViewModel
+import com.example.myapplication1.p2pNet.peerPing2
+import com.example.myapplication1.p2pNet.startP2P
 import com.example.myapplication1.ui.theme.MyApplication1Theme
-import kotlinx.coroutines.DelicateCoroutinesApi
-import java.util.concurrent.CompletableFuture
-
-suspend fun getTst(): CompletableFuture<String>? {
-    // makes a request and suspends the coroutine
-    val x = getImage("98740002").thenApply { result ->
-        return@thenApply result
-    }
-    return x
-}
 
 class MainActivity : ComponentActivity() {
 
     private var sharedPref: SharedPreferences? = null
 
-
-    @OptIn(DelicateCoroutinesApi::class)
     @SuppressLint("HardwareIds")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         mainViewModel = ViewModelProvider(this)[MainViewModel::class.java]
         startP2P(this)
-        sharedViewModel = ViewModelProvider(this)[SharedViewModel::class.java]
-
-        val serviceIntent = Intent(this, P2PService::class.java)
+        p2pViewModel = ViewModelProvider(this)[P2PViewModel::class.java]
+        val serviceIntent = Intent(this, P2PService2::class.java)
         startService(serviceIntent)
-        //val items by mainViewModel!!.p2pState.collectAsState()
-        //val p2pstate = mainViewModel!!.p2pState.value
 
         setContent {
             MyApplication1Theme {
@@ -68,19 +53,18 @@ class MainActivity : ComponentActivity() {
                     verticalArrangement = Arrangement.Top,
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    //val items by mainViewModel!!.p2pState.observeAsState()
                     Text(
                         text = "Android webRTC",
                         modifier = Modifier.padding(20.dp)
                     )
 
                     Text(
-                        text = sharedViewModel!!.p2pSte.value,
+                        text = p2pViewModel!!.p2pState.value,
                         modifier = Modifier.padding(20.dp)
                     )
 
                     Button(
-                        //enabled = viewModel!!.p2pState == "offline",
+                        enabled = p2pViewModel!!.p2pState.toString() != "online",
                         onClick = {
                             connectPeer()
                         }) {
@@ -94,35 +78,9 @@ class MainActivity : ComponentActivity() {
                         Text("Browse")
                     }
                     Button(onClick = {
-                        peerPing().thenApply { result ->
+                        peerPing2().thenApply { result ->
                             mainViewModel!!.dateText = result
                         }
-                        /*getImage("98740002").thenApply { result ->
-                            val bitmap = imageHandler(result)
-                            if (bitmap != null) {
-                                mainViewModel!!.logoImage = bitmap
-                            } else {
-                                println("Img no data")
-                            }
-                        }*/
-
-                        /*GlobalScope.launch(Dispatchers.IO + coroutineExceptionHandler) {
-                            val x = getTst()
-                            println(x)
-                        }*/
-
-                        /*getProduct("98740002").thenAccept { result ->
-                            if (result.isNotEmpty()) {
-                                try {
-                                    val resp = gson.fromJson(result, Product::class.java)
-                                    println(resp)
-                                } catch (e: Exception) {
-                                    println(e)
-                                }
-                            } else {
-                                println("getProduct no data")
-                            }
-                        }*/
                     }) {
                         Text("Msg")
                     }

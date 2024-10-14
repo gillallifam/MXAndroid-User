@@ -41,10 +41,10 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModelProvider
-import com.example.myapplication1.P2P.browserViewModel
-import com.example.myapplication1.P2P.getImage
-import com.example.myapplication1.P2P.imageHandler
-import com.example.myapplication1.P2P.updateProducts
+import com.example.myapplication1.p2pNet.browserViewModel
+import com.example.myapplication1.p2pNet.getImage
+import com.example.myapplication1.p2pNet.imageHandler
+import com.example.myapplication1.p2pNet.updateProducts
 import com.example.myapplication1.ui.theme.MyApplication1Theme
 import java.util.Locale
 

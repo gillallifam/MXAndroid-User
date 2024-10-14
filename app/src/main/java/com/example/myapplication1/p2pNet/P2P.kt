@@ -1,4 +1,4 @@
-package com.example.myapplication1.P2P
+package com.example.myapplication1.p2pNet
 
 import CustomSDPClass
 import OfferExtras
@@ -10,7 +10,6 @@ import com.example.myapplication1.BrowserViewModel
 import com.example.myapplication1.MainActivity
 import com.example.myapplication1.MainViewModel
 import com.example.myapplication1.NetworkUtils.Companion.shopApi
-import com.example.myapplication1.SharedViewModel
 import com.example.myapplication1.gson
 import com.example.myapplication1.timeID
 import kotlinx.coroutines.CoroutineExceptionHandler
@@ -33,14 +32,13 @@ import org.webrtc.SessionDescription
 import org.webrtc.SessionDescription.Type
 import java.util.concurrent.CompletableFuture
 
-
 var localPeer: PeerConnection? = null
 var dataChannel: DataChannel? = null
 var localOffer: CustomSDPClass? = null
 val iceServers: MutableList<IceServer> = ArrayList()
 var deviceUUID = ""
 var mainViewModel: MainViewModel? = null
-var sharedViewModel: SharedViewModel? = null
+var p2pViewModel: P2PViewModel? = null
 var browserViewModel: BrowserViewModel? = null
 var peerConnectionFactory: PeerConnectionFactory? = null
 var mainContext: MainActivity? = null
@@ -52,9 +50,6 @@ val coroutineExceptionHandler = CoroutineExceptionHandler { _, throwable ->
 }
 
 fun startP2P(context: MainActivity) {
-    /*callbacks["f1"] = { println("invoked f1") }
-    println(callbacks)
-    callbacks["f1"]?.invoke()*/
     mainContext = context
     PeerConnectionFactory.initialize(
         PeerConnectionFactory.InitializationOptions.builder(context).createInitializationOptions()
@@ -94,7 +89,7 @@ fun startP2P(context: MainActivity) {
 fun connectPeer() {
     if (localPeer == null) {
         //Toast.makeText(mainContext, "Peer start", Toast.LENGTH_SHORT).show()
-        sharedViewModel!!.p2pSte.value = "connecting"
+        p2pViewModel!!.p2pState.value = "connecting"
 
         localPeer = peerConnectionFactory!!.createPeerConnection(iceServers, getPCObserver())
         dataChannel = localPeer!!.createDataChannel(
@@ -249,7 +244,7 @@ fun getPCObserver(): PeerConnection.Observer {
                 val state1 = localPeer!!.connectionState().name
                 println(state1)
                 println("Peer disconnected.")
-                sharedViewModel!!.p2pSte.value = "offline"
+                p2pViewModel!!.p2pState.value = "offline"
                 localPeer!!.dispose()
                 localPeer = null
                 /*mainContext!!.runOnUiThread(Runnable {
@@ -262,7 +257,7 @@ fun getPCObserver(): PeerConnection.Observer {
                 val state2 = localPeer!!.connectionState().name
                 println(state2)
                 println("Peer failed.")
-                sharedViewModel!!.p2pSte.value = "offline"
+                p2pViewModel!!.p2pState.value = "offline"
                 localPeer = null
             }
             if (state == "COMPLETED") {
@@ -270,7 +265,7 @@ fun getPCObserver(): PeerConnection.Observer {
                 //mainViewModel!!.p2pState.postValue("online")
                 //mainViewModel!!.p2pState.value = "online"
                 //mainViewModel!!.viewModelScope.launch { mainViewModel!!.p2pState.value = "online" }
-                sharedViewModel!!.p2pSte.value = "online"
+                p2pViewModel!!.p2pState.value = "online"
             }
         }
 
