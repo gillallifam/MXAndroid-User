@@ -2,6 +2,8 @@ package com.example.myapplication1
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.icu.text.DecimalFormat
+import android.icu.text.NumberFormat
 import android.util.Base64
 import com.google.gson.Gson
 import java.net.InetAddress
@@ -16,10 +18,11 @@ import java.util.concurrent.TimeoutException
 
 val gson = Gson()
 
-fun decodePicString (encodedString: String): Bitmap {
+val formatter: NumberFormat = DecimalFormat("#,##")
+
+fun decodeBMP (encodedString: String): Bitmap {
     val imageBytes = Base64.decode(encodedString, Base64.DEFAULT)
-    val decodedImage = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
-    return decodedImage
+    return BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
 }
 
 fun timeID (): String {

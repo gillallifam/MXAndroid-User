@@ -1,7 +1,5 @@
 package com.example.myapplication1
 
-import Product
-import ImageModel
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.content.SharedPreferences
@@ -24,19 +22,40 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
+import com.example.myapplication1.P2P.P2PService
+import com.example.myapplication1.P2P.connectPeer
+import com.example.myapplication1.P2P.deviceUUID
+import com.example.myapplication1.P2P.getImage
+import com.example.myapplication1.P2P.localPeer
+import com.example.myapplication1.P2P.mainViewModel
+import com.example.myapplication1.P2P.peerPing
+import com.example.myapplication1.P2P.sharedViewModel
+import com.example.myapplication1.P2P.startP2P
 import com.example.myapplication1.ui.theme.MyApplication1Theme
+import kotlinx.coroutines.DelicateCoroutinesApi
+import java.util.concurrent.CompletableFuture
 
+suspend fun getTst(): CompletableFuture<String>? {
+    // makes a request and suspends the coroutine
+    val x = getImage("98740002").thenApply { result ->
+        return@thenApply result
+    }
+    return x
+}
 
 class MainActivity : ComponentActivity() {
 
     private var sharedPref: SharedPreferences? = null
 
+
+    @OptIn(DelicateCoroutinesApi::class)
     @SuppressLint("HardwareIds")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         mainViewModel = ViewModelProvider(this)[MainViewModel::class.java]
-        globalViewModel = mainViewModel
         startP2P(this)
+        sharedViewModel = ViewModelProvider(this)[SharedViewModel::class.java]
+
         val serviceIntent = Intent(this, P2PService::class.java)
         startService(serviceIntent)
         //val items by mainViewModel!!.p2pState.collectAsState()
@@ -46,7 +65,7 @@ class MainActivity : ComponentActivity() {
             MyApplication1Theme {
                 Column(
                     modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.Center,
+                    verticalArrangement = Arrangement.Top,
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     //val items by mainViewModel!!.p2pState.observeAsState()
@@ -56,7 +75,7 @@ class MainActivity : ComponentActivity() {
                     )
 
                     Text(
-                        text = mainViewModel!!.p2pState.value.toString(),
+                        text = sharedViewModel!!.p2pSte.value,
                         modifier = Modifier.padding(20.dp)
                     )
 
@@ -67,17 +86,32 @@ class MainActivity : ComponentActivity() {
                         }) {
                         Text("Connect")
                     }
+                    Button(
+                        //enabled = viewModel!!.p2pState == "offline",
+                        onClick = {
+                            startActivity(Intent(this@MainActivity, BrowserActivity::class.java))
+                        }) {
+                        Text("Browse")
+                    }
                     Button(onClick = {
-                        getImage("98740001").thenAccept { result ->
-                            val img = imageHandler(result)
-                            if (img != null) {
-                                println(img)
+                        peerPing().thenApply { result ->
+                            mainViewModel!!.dateText = result
+                        }
+                        /*getImage("98740002").thenApply { result ->
+                            val bitmap = imageHandler(result)
+                            if (bitmap != null) {
+                                mainViewModel!!.logoImage = bitmap
                             } else {
                                 println("Img no data")
                             }
-                        }
+                        }*/
 
-                        getProduct("98740001").thenAccept { result ->
+                        /*GlobalScope.launch(Dispatchers.IO + coroutineExceptionHandler) {
+                            val x = getTst()
+                            println(x)
+                        }*/
+
+                        /*getProduct("98740002").thenAccept { result ->
                             if (result.isNotEmpty()) {
                                 try {
                                     val resp = gson.fromJson(result, Product::class.java)
@@ -88,10 +122,11 @@ class MainActivity : ComponentActivity() {
                             } else {
                                 println("getProduct no data")
                             }
-                        }
+                        }*/
                     }) {
                         Text("Msg")
                     }
+                    Text(mainViewModel!!.dateText)
                     if (mainViewModel!!.logoImage != null) {
                         Image(
                             bitmap = mainViewModel!!.logoImage!!.asImageBitmap(),

@@ -1,4 +1,4 @@
-package com.example.myapplication1
+package com.example.myapplication1.P2P
 
 import android.app.Service
 import android.content.Intent

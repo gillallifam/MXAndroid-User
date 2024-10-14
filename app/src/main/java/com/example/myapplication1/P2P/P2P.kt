@@ -1,4 +1,4 @@
-package com.example.myapplication1
+package com.example.myapplication1.P2P
 
 import CustomSDPClass
 import OfferExtras
@@ -6,7 +6,13 @@ import PackedOffer
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import com.example.myapplication1.BrowserViewModel
+import com.example.myapplication1.MainActivity
+import com.example.myapplication1.MainViewModel
 import com.example.myapplication1.NetworkUtils.Companion.shopApi
+import com.example.myapplication1.SharedViewModel
+import com.example.myapplication1.gson
+import com.example.myapplication1.timeID
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
@@ -34,12 +40,16 @@ var localOffer: CustomSDPClass? = null
 val iceServers: MutableList<IceServer> = ArrayList()
 var deviceUUID = ""
 var mainViewModel: MainViewModel? = null
-var globalViewModel: MainViewModel? = null
+var sharedViewModel: SharedViewModel? = null
 var browserViewModel: BrowserViewModel? = null
 var peerConnectionFactory: PeerConnectionFactory? = null
 var mainContext: MainActivity? = null
 
 val promises: MutableMap<String, CompletableFuture<String>> = mutableMapOf()
+
+val coroutineExceptionHandler = CoroutineExceptionHandler { _, throwable ->
+    throwable.printStackTrace()
+}
 
 fun startP2P(context: MainActivity) {
     /*callbacks["f1"] = { println("invoked f1") }
@@ -84,9 +94,8 @@ fun startP2P(context: MainActivity) {
 fun connectPeer() {
     if (localPeer == null) {
         //Toast.makeText(mainContext, "Peer start", Toast.LENGTH_SHORT).show()
-        mainContext!!.runOnUiThread(Runnable {
-            mainViewModel!!.p2pState.value = "connecting"
-        })
+        sharedViewModel!!.p2pSte.value = "connecting"
+
         localPeer = peerConnectionFactory!!.createPeerConnection(iceServers, getPCObserver())
         dataChannel = localPeer!!.createDataChannel(
             "dataChannel-${timeID()}", DataChannel.Init()
@@ -217,9 +226,7 @@ fun getRemoteSdpObserver(peer: PeerConnection): SdpObserver {
 @OptIn(DelicateCoroutinesApi::class)
 fun getPCObserver(): PeerConnection.Observer {
 
-    val coroutineExceptionHandler = CoroutineExceptionHandler { _, throwable ->
-        throwable.printStackTrace()
-    }
+
     val pcObserver: PeerConnection.Observer = object : PeerConnection.Observer {
         val TAG: String = "PEER_CONNECTION_FACTORY"
 
@@ -242,9 +249,7 @@ fun getPCObserver(): PeerConnection.Observer {
                 val state1 = localPeer!!.connectionState().name
                 println(state1)
                 println("Peer disconnected.")
-                mainContext!!.runOnUiThread(Runnable {
-                    mainViewModel!!.p2pState.value = "offline"
-                })
+                sharedViewModel!!.p2pSte.value = "offline"
                 localPeer!!.dispose()
                 localPeer = null
                 /*mainContext!!.runOnUiThread(Runnable {
@@ -257,9 +262,7 @@ fun getPCObserver(): PeerConnection.Observer {
                 val state2 = localPeer!!.connectionState().name
                 println(state2)
                 println("Peer failed.")
-                mainContext!!.runOnUiThread(Runnable {
-                    mainViewModel!!.p2pState.value = "offline"
-                })
+                sharedViewModel!!.p2pSte.value = "offline"
                 localPeer = null
             }
             if (state == "COMPLETED") {
@@ -267,10 +270,7 @@ fun getPCObserver(): PeerConnection.Observer {
                 //mainViewModel!!.p2pState.postValue("online")
                 //mainViewModel!!.p2pState.value = "online"
                 //mainViewModel!!.viewModelScope.launch { mainViewModel!!.p2pState.value = "online" }
-                mainContext!!.runOnUiThread(Runnable {
-                    mainViewModel!!.updateP2PSate("online")
-                    //mainViewModel!!.p2pState.value = "online"
-                })
+                sharedViewModel!!.p2pSte.value = "online"
             }
         }
 
@@ -282,7 +282,7 @@ fun getPCObserver(): PeerConnection.Observer {
             Log.d(TAG, "onIceGatheringChange")
             if (iceGatheringState.name == "COMPLETE") {
                 val extras = OfferExtras(
-                    peerOwner = "${deviceUUID}>tst@android.mktpix",
+                    peerOwner = "$deviceUUID>tst@android.mktpix",
                     shop = "LojaExemplo1",
                     userid = deviceUUID,
                     deviceUUID = deviceUUID,

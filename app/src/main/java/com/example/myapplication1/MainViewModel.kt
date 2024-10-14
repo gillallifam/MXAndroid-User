@@ -11,6 +11,7 @@ class MainViewModel : ViewModel() {
     //var p2pState  by mutableStateOf("offline")
     var p2pState  = MutableLiveData("offline")
     var logoImage  by mutableStateOf<Bitmap?>(null)
+    var dateText  by mutableStateOf("")
 
     fun updateP2PSate (state: String){
         p2pState.postValue(state)

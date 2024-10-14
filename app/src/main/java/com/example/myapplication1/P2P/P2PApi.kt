@@ -1,11 +1,15 @@
-package com.example.myapplication1
+package com.example.myapplication1.P2P
 
 import Cmd
 import CmdResp
 import ImageModel
 import Load
+import android.graphics.Bitmap
 import android.os.Handler
 import android.os.Looper
+import com.example.myapplication1.decodeBMP
+import com.example.myapplication1.genPid
+import com.example.myapplication1.gson
 import org.webrtc.DataChannel
 import java.nio.ByteBuffer
 import java.util.concurrent.CompletableFuture
@@ -40,19 +44,28 @@ fun receiveData(buffer: DataChannel.Buffer?) {
     data.get(bytes);
     val resp = String(bytes)
     val cmd = gson.fromJson(resp, CmdResp::class.java)
-    println(cmd)
+    //println(cmd)
     promises[cmd.pid]?.let {
         it.complete(cmd.content)
         promises.remove(cmd.pid)
     }
 }
 
+fun peerPing(): CompletableFuture<String> {
+    return sendData(
+        Cmd(
+            cmd = "ping2",
+            from = "$deviceUUID>tst@android.mktpix"
+        )
+    )
+}
+
 fun getProduct(productId: String): CompletableFuture<String> {
     return sendData(
         Cmd(
-            cmd = "reqProd3",
+            cmd = "reqProd2",
             load = productId,
-            from = "${deviceUUID}>tst@android.mktpix"
+            from = "$deviceUUID>tst@android.mktpix"
         )
     )
 }
@@ -61,18 +74,22 @@ fun getImage(imageId: String): CompletableFuture<String> {
     return sendData(
         Cmd(
             cmd = "reqImg2",
-            from = "${deviceUUID}>tst@android.mktpix",
+            from = "$deviceUUID>tst@android.mktpix",
             load = Load(cod = imageId)
         )
     )
 }
 
-fun imageHandler(data: String): ImageModel? {
+fun imageHandler(data: String): Bitmap? {
     if (data.isNotEmpty()) {
         try {
-            val img = gson.fromJson(data, ImageModel::class.java)
-            println(img)
-            return img
+            val imgData = gson.fromJson(data, ImageModel::class.java)
+            val b64 = imgData.img
+                .replace("data:image/webp;base64,", "")
+                .replace("data:image/jpeg;base64,", "")
+                .replace("data:image/png;base64,", "");
+            val bitmap = decodeBMP(b64)
+            return bitmap
         } catch (e: Exception) {
             println(e)
         }
@@ -84,7 +101,8 @@ fun updateProducts(): CompletableFuture<String> {
     return sendData(
         Cmd(
             cmd = "reqProducts2",
-            from = "${deviceUUID}>tst@android.mktpix"
+            age = 0,
+            from = "$deviceUUID>tst@android.mktpix"
         )
     )
 }
