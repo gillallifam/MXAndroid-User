@@ -47,6 +47,7 @@ var browserViewModel: BrowserViewModel? = null
 var peerConnectionFactory: PeerConnectionFactory? = null
 var mainContext: MainActivity? = null
 var p2pContext: P2PService2? = null
+var p2pApi: P2PAPI? = null
 
 val promises: MutableMap<String, CompletableFuture<String>> = mutableMapOf()
 
@@ -126,7 +127,7 @@ fun connectPeer() {
     }
 }
 
-fun sendData(cmd: Cmd): CompletableFuture<String> {
+fun sendData(cmd: Cmd, timeout: Long = 5000): CompletableFuture<String> {
     val promise = CompletableFuture<String>()
     Handler(Looper.getMainLooper()).postDelayed({
         promises[cmd.pid]?.let {
@@ -151,7 +152,7 @@ fun sendData(cmd: Cmd): CompletableFuture<String> {
 fun receiveData(buffer: DataChannel.Buffer?) {
     val data: ByteBuffer = buffer!!.data
     val bytes = ByteArray(data.remaining())
-    data.get(bytes);
+    data.get(bytes)
     val resp = String(bytes)
     val cmd = gson.fromJson(resp, CmdResp::class.java)
     //println(cmd)
@@ -262,11 +263,11 @@ fun getPCObserver(): PeerConnection.Observer {
             Log.d(TAG, "onSignalingChange")
             val state = signalingState.name
             if (state == "DISCONNECTED" || state == "CLOSED") {
-                mainContext!!.runOnUiThread(Runnable {
+                mainContext!!.runOnUiThread {
                     Handler(Looper.getMainLooper()).postDelayed({
                         connectPeer()
                     }, 5000)
-                })
+                }
             }
         }
 

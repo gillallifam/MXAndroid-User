@@ -30,10 +30,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -42,9 +38,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModelProvider
 import com.example.myapplication1.p2pNet.browserViewModel
-import com.example.myapplication1.p2pNet.getImage
-import com.example.myapplication1.p2pNet.imageHandler
-import com.example.myapplication1.p2pNet.updateProducts
+import com.example.myapplication1.p2pNet.imageHandler2
+import com.example.myapplication1.p2pNet.p2pApi
 import com.example.myapplication1.ui.theme.MyApplication1Theme
 import java.util.Locale
 
@@ -52,7 +47,7 @@ class BrowserActivity : ComponentActivity() {
 
     @Composable
     fun ProdCard(index: Int, prod: Product) {
-        var visible by remember { mutableStateOf(true) }
+        //var visible by remember { mutableStateOf(true) }
         val density = LocalDensity.current
         AnimatedVisibility(
             visible = true,
@@ -117,15 +112,15 @@ class BrowserActivity : ComponentActivity() {
         val productDao = db.productDao()*/
         //var products=  listOf<Product>()
         browserViewModel = ViewModelProvider(this)[BrowserViewModel::class.java]
-        updateProducts().thenAccept { allData ->
+        p2pApi!!.updateProducts().thenAccept { allData ->
             try {
                 val data = gson.fromJson(allData, Array<Product>::class.java).asList()
                 println(data)
                 for ((index, prod) in data.withIndex()) {
-                    getImage(prod.cod).thenAccept { imgData ->
+                    p2pApi!!.getImage(prod.cod).thenAccept { imgData ->
                         try {
                             val prodIdx = data[index]
-                            prodIdx.img = imageHandler(imgData)
+                            prodIdx.img = imageHandler2(imgData)
                             if (index == data.size - 1) {
                                 browserViewModel!!.allProducts.addAll(data)
                                 browserViewModel!!.selectedProducts.addAll(data.filter {
