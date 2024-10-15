@@ -16,41 +16,6 @@ import java.util.concurrent.CompletableFuture
 
 const val timeout: Long = 5000
 
-fun sendData(cmd: Cmd): CompletableFuture<String> {
-    val promise = CompletableFuture<String>()
-    Handler(Looper.getMainLooper()).postDelayed({
-        promises[cmd.pid]?.let {
-            it.complete("")
-            promises.remove(cmd.pid)
-        }
-    }, timeout)
-
-    if (dataChannel!!.state().name == "OPEN") {
-        val pid = genPid()
-        cmd.pid = pid
-        promises[pid] = promise
-        val payload = gson.toJson(cmd)
-        val buffer = ByteBuffer.wrap(payload.toByteArray())
-        dataChannel!!.send(DataChannel.Buffer(buffer, false))
-    } else {
-        println("Data channel not open")
-    }
-    return promise
-}
-
-fun receiveData(buffer: DataChannel.Buffer?) {
-    val data: ByteBuffer = buffer!!.data
-    val bytes = ByteArray(data.remaining())
-    data.get(bytes);
-    val resp = String(bytes)
-    val cmd = gson.fromJson(resp, CmdResp::class.java)
-    //println(cmd)
-    promises[cmd.pid]?.let {
-        it.complete(cmd.content)
-        promises.remove(cmd.pid)
-    }
-}
-
 fun peerPing2(): CompletableFuture<String> {
     return sendData(
         Cmd(

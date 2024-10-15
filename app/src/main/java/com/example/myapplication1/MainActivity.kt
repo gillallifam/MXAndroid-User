@@ -1,9 +1,12 @@
 package com.example.myapplication1
 
 import android.annotation.SuppressLint
+import android.content.ComponentName
 import android.content.Intent
+import android.content.ServiceConnection
 import android.content.SharedPreferences
 import android.os.Bundle
+import android.os.IBinder
 import android.provider.Settings.Secure
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -22,6 +25,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
+import com.example.myapplication1.p2pNet.P2PAPIClass
 import com.example.myapplication1.p2pNet.P2PService2
 import com.example.myapplication1.p2pNet.P2PViewModel
 import com.example.myapplication1.p2pNet.connectPeer
@@ -37,14 +41,26 @@ class MainActivity : ComponentActivity() {
 
     private var sharedPref: SharedPreferences? = null
 
+    private val connection = object : ServiceConnection {
+
+        override fun onServiceConnected(className: ComponentName, service: IBinder) {
+            println(service)
+        }
+
+        override fun onServiceDisconnected(arg0: ComponentName) {
+
+        }
+    }
+
     @SuppressLint("HardwareIds")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         mainViewModel = ViewModelProvider(this)[MainViewModel::class.java]
-        startP2P(this)
+        //startP2P(this)
         p2pViewModel = ViewModelProvider(this)[P2PViewModel::class.java]
         val serviceIntent = Intent(this, P2PService2::class.java)
         startService(serviceIntent)
+        val p2pApi = P2PAPIClass.instance
 
         setContent {
             MyApplication1Theme {
@@ -78,7 +94,7 @@ class MainActivity : ComponentActivity() {
                         Text("Browse")
                     }
                     Button(onClick = {
-                        peerPing2().thenApply { result ->
+                        p2pApi.peerPing2().thenApply { result ->
                             mainViewModel!!.dateText = result
                         }
                     }) {
@@ -105,7 +121,6 @@ class MainActivity : ComponentActivity() {
             deviceUUID = "${baseId}-${androidId}"
             sharedPref!!.edit().putString("deviceUUID", deviceUUID).apply()
         }
-        connectPeer()
         val p2pStateObserver = Observer<String> { stateStr ->
             //if (stateStr == "online") this.startActivity(Intent(this, BrowserActivity::class.java))
         }

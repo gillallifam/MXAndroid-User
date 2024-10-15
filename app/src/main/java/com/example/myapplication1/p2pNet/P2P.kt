@@ -1,5 +1,7 @@
 package com.example.myapplication1.p2pNet
 
+import Cmd
+import CmdResp
 import CustomSDPClass
 import OfferExtras
 import PackedOffer
@@ -10,6 +12,7 @@ import com.example.myapplication1.BrowserViewModel
 import com.example.myapplication1.MainActivity
 import com.example.myapplication1.MainViewModel
 import com.example.myapplication1.NetworkUtils.Companion.shopApi
+import com.example.myapplication1.genPid
 import com.example.myapplication1.gson
 import com.example.myapplication1.timeID
 import kotlinx.coroutines.CoroutineExceptionHandler
@@ -30,6 +33,7 @@ import org.webrtc.RtpReceiver
 import org.webrtc.SdpObserver
 import org.webrtc.SessionDescription
 import org.webrtc.SessionDescription.Type
+import java.nio.ByteBuffer
 import java.util.concurrent.CompletableFuture
 
 var localPeer: PeerConnection? = null
@@ -42,6 +46,7 @@ var p2pViewModel: P2PViewModel? = null
 var browserViewModel: BrowserViewModel? = null
 var peerConnectionFactory: PeerConnectionFactory? = null
 var mainContext: MainActivity? = null
+var p2pContext: P2PService2? = null
 
 val promises: MutableMap<String, CompletableFuture<String>> = mutableMapOf()
 
@@ -49,8 +54,8 @@ val coroutineExceptionHandler = CoroutineExceptionHandler { _, throwable ->
     throwable.printStackTrace()
 }
 
-fun startP2P(context: MainActivity) {
-    mainContext = context
+fun startP2P(context: P2PService2) {
+    p2pContext = context
     PeerConnectionFactory.initialize(
         PeerConnectionFactory.InitializationOptions.builder(context).createInitializationOptions()
     )
@@ -88,7 +93,6 @@ fun startP2P(context: MainActivity) {
 
 fun connectPeer() {
     if (localPeer == null) {
-        //Toast.makeText(mainContext, "Peer start", Toast.LENGTH_SHORT).show()
         p2pViewModel!!.p2pState.value = "connecting"
 
         localPeer = peerConnectionFactory!!.createPeerConnection(iceServers, getPCObserver())
@@ -119,12 +123,41 @@ fun connectPeer() {
                 }
             }, mediaConstraints
         )
+    }
+}
+
+fun sendData(cmd: Cmd): CompletableFuture<String> {
+    val promise = CompletableFuture<String>()
+    Handler(Looper.getMainLooper()).postDelayed({
+        promises[cmd.pid]?.let {
+            it.complete("")
+            promises.remove(cmd.pid)
+        }
+    }, timeout)
+
+    if (dataChannel!!.state().name == "OPEN") {
+        val pid = genPid()
+        cmd.pid = pid
+        promises[pid] = promise
+        val payload = gson.toJson(cmd)
+        val buffer = ByteBuffer.wrap(payload.toByteArray())
+        dataChannel!!.send(DataChannel.Buffer(buffer, false))
     } else {
-        /*Toast.makeText(
-            mainContext,
-            "Peer status ${localPeer!!.connectionState().name}",
-            Toast.LENGTH_SHORT
-        ).show()*/
+        println("Data channel not open")
+    }
+    return promise
+}
+
+fun receiveData(buffer: DataChannel.Buffer?) {
+    val data: ByteBuffer = buffer!!.data
+    val bytes = ByteArray(data.remaining())
+    data.get(bytes);
+    val resp = String(bytes)
+    val cmd = gson.fromJson(resp, CmdResp::class.java)
+    //println(cmd)
+    promises[cmd.pid]?.let {
+        it.complete(cmd.content)
+        promises.remove(cmd.pid)
     }
 }
 
@@ -261,10 +294,6 @@ fun getPCObserver(): PeerConnection.Observer {
                 localPeer = null
             }
             if (state == "COMPLETED") {
-                //mainViewModel!!.updateP2PSate("online")
-                //mainViewModel!!.p2pState.postValue("online")
-                //mainViewModel!!.p2pState.value = "online"
-                //mainViewModel!!.viewModelScope.launch { mainViewModel!!.p2pState.value = "online" }
                 p2pViewModel!!.p2pState.value = "online"
             }
         }
@@ -304,7 +333,6 @@ fun getPCObserver(): PeerConnection.Observer {
         }
 
         override fun onIceCandidate(iceCandidate: IceCandidate) {
-            //println("AN ICE CANDIDATE HAS BEEN DISCOVERED")
             try {
                 val payload = JSONObject()
                 payload.put("sdpMLineIndex", iceCandidate.sdpMLineIndex)
