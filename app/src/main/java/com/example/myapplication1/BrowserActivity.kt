@@ -37,7 +37,6 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModelProvider
-import com.example.myapplication1.p2pNet.browserViewModel
 import com.example.myapplication1.p2pNet.imageHandler2
 import com.example.myapplication1.p2pNet.p2pApi
 import com.example.myapplication1.ui.theme.MyApplication1Theme
@@ -45,6 +44,7 @@ import java.util.Locale
 
 class BrowserActivity : ComponentActivity() {
 
+    private lateinit var browserViewModel: BrowserViewModel
     @Composable
     fun ProdCard(index: Int, prod: Product) {
         //var visible by remember { mutableStateOf(true) }

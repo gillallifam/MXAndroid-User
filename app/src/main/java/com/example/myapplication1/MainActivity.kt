@@ -1,6 +1,8 @@
 package com.example.myapplication1
 
 import android.annotation.SuppressLint
+import android.app.ActivityManager
+import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Bundle
@@ -27,24 +29,39 @@ import com.example.myapplication1.p2pNet.P2PService2
 import com.example.myapplication1.p2pNet.P2PViewModel
 import com.example.myapplication1.p2pNet.connectPeer
 import com.example.myapplication1.p2pNet.deviceUUID
+import com.example.myapplication1.p2pNet.disconnectPeer
 import com.example.myapplication1.p2pNet.localPeer
-import com.example.myapplication1.p2pNet.mainViewModel
+import com.example.myapplication1.p2pNet.mainContext
 import com.example.myapplication1.p2pNet.p2pApi
 import com.example.myapplication1.p2pNet.p2pViewModel
 import com.example.myapplication1.ui.theme.MyApplication1Theme
 
+
 class MainActivity : ComponentActivity() {
 
     private var sharedPref: SharedPreferences? = null
+    private lateinit var mainViewModel: MainViewModel
+
+    private fun isMyServiceRunning(serviceClass: Class<*>): Boolean {
+        val manager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+        for (service in manager.getRunningServices(Int.MAX_VALUE)) {
+            if (serviceClass.name == service.service.className) {
+                return true
+            }
+        }
+        return false
+    }
 
     @SuppressLint("HardwareIds")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         mainViewModel = ViewModelProvider(this)[MainViewModel::class.java]
         p2pViewModel = ViewModelProvider(this)[P2PViewModel::class.java]
+        val servRunning = isMyServiceRunning(P2PService2::class.java)
         val serviceIntent = Intent(this, P2PService2::class.java)
-        startService(serviceIntent)
+        val serv = startService(serviceIntent)
         p2pApi = P2PAPI.instance
+        mainContext = this
 
         setContent {
             MyApplication1Theme {
@@ -63,23 +80,33 @@ class MainActivity : ComponentActivity() {
                         modifier = Modifier.padding(20.dp)
                     )
 
-                    Button(
-                        enabled = p2pViewModel!!.p2pState.toString() != "online",
-                        onClick = {
-                            connectPeer()
-                        }) {
-                        Text("Connect")
+                    if (p2pViewModel!!.p2pState.value != "online") {
+                        Button(
+                            onClick = {
+                                connectPeer()
+                            }) {
+                            Text("Connect")
+                        }
+                    }else{
+                        Button(
+                            onClick = {
+                                disconnectPeer()
+                            }) {
+                            Text("Disconnect")
+                        }
                     }
+
                     Button(
-                        //enabled = viewModel!!.p2pState == "offline",
                         onClick = {
-                            startActivity(Intent(this@MainActivity, BrowserActivity::class.java))
+                            if (p2pViewModel!!.p2pState.value === "online") {
+                                startActivity(Intent(this@MainActivity, BrowserActivity::class.java))
+                            }
                         }) {
                         Text("Browse")
                     }
                     Button(onClick = {
                         p2pApi!!.peerPing2().thenApply { result ->
-                            mainViewModel!!.dateText = result
+                            if (result.isNotEmpty()) mainViewModel!!.dateText = result
                         }
                     }) {
                         Text("Msg")

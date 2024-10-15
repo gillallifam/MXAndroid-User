@@ -36,7 +36,8 @@ data class Cmd(
 data class CmdResp(
     var pid: String? = null,
     val cmd: String,
-    var success: Boolean = false,
+    //var success: Boolean = false,
+    var status: String = "error",
     val content: String,
 )
 

@@ -41,13 +41,11 @@ var dataChannel: DataChannel? = null
 var localOffer: CustomSDPClass? = null
 val iceServers: MutableList<IceServer> = ArrayList()
 var deviceUUID = ""
-var mainViewModel: MainViewModel? = null
 var p2pViewModel: P2PViewModel? = null
-var browserViewModel: BrowserViewModel? = null
 var peerConnectionFactory: PeerConnectionFactory? = null
 var mainContext: MainActivity? = null
-var p2pContext: P2PService2? = null
 var p2pApi: P2PAPI? = null
+const val peerAutoReconnect = false
 
 val promises: MutableMap<String, CompletableFuture<String>> = mutableMapOf()
 
@@ -56,7 +54,6 @@ val coroutineExceptionHandler = CoroutineExceptionHandler { _, throwable ->
 }
 
 fun startP2P(context: P2PService2) {
-    p2pContext = context
     PeerConnectionFactory.initialize(
         PeerConnectionFactory.InitializationOptions.builder(context).createInitializationOptions()
     )
@@ -127,6 +124,14 @@ fun connectPeer() {
     }
 }
 
+fun disconnectPeer() {
+    if (localPeer != null) {
+        localPeer!!.dispose()
+        localPeer = null
+        p2pViewModel!!.p2pState.value = "offline"
+    }
+}
+
 fun sendData(cmd: Cmd, timeout: Long = 5000): CompletableFuture<String> {
     val promise = CompletableFuture<String>()
     Handler(Looper.getMainLooper()).postDelayed({
@@ -154,12 +159,15 @@ fun receiveData(buffer: DataChannel.Buffer?) {
     val bytes = ByteArray(data.remaining())
     data.get(bytes)
     val resp = String(bytes)
-    val cmd = gson.fromJson(resp, CmdResp::class.java)
+    val cmdResp = gson.fromJson(resp, CmdResp::class.java)
     //println(cmd)
-    promises[cmd.pid]?.let {
-        it.complete(cmd.content)
-        promises.remove(cmd.pid)
+    if (cmdResp.status != "wait") {
+        promises[cmdResp.pid]?.let {
+            it.complete(cmdResp.content)
+            promises.remove(cmdResp.pid)
+        }
     }
+
 }
 
 fun getDataChannelObserver(dataChannel: DataChannel): DataChannel.Observer {
@@ -262,11 +270,13 @@ fun getPCObserver(): PeerConnection.Observer {
         override fun onSignalingChange(signalingState: PeerConnection.SignalingState) {
             Log.d(TAG, "onSignalingChange")
             val state = signalingState.name
-            if (state == "DISCONNECTED" || state == "CLOSED") {
-                mainContext!!.runOnUiThread {
-                    Handler(Looper.getMainLooper()).postDelayed({
-                        connectPeer()
-                    }, 5000)
+            if (peerAutoReconnect) {
+                if (state == "DISCONNECTED" || state == "CLOSED") {
+                    mainContext!!.runOnUiThread {
+                        Handler(Looper.getMainLooper()).postDelayed({
+                            connectPeer()
+                        }, 5000)
+                    }
                 }
             }
         }
