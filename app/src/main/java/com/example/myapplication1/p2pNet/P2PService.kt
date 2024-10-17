@@ -12,9 +12,10 @@ class P2PService2 : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        P2PAPI.instance
+        /*P2PAPI.instance
+        if (p2pViewModel!!.p2pService == null) p2pViewModel!!.p2pService = this
         startP2P(this)
-        connectPeer()
+        if (localPeer == null) connectPeer()*/
         println("P2PService online!")
     }
 }

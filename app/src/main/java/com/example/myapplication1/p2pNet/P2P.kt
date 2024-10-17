@@ -8,9 +8,8 @@ import PackedOffer
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
-import com.example.myapplication1.BrowserViewModel
+import android.widget.Toast
 import com.example.myapplication1.MainActivity
-import com.example.myapplication1.MainViewModel
 import com.example.myapplication1.NetworkUtils.Companion.shopApi
 import com.example.myapplication1.genPid
 import com.example.myapplication1.gson
@@ -36,7 +35,7 @@ import org.webrtc.SessionDescription.Type
 import java.nio.ByteBuffer
 import java.util.concurrent.CompletableFuture
 
-var localPeer: PeerConnection? = null
+//var localPeer: PeerConnection? = null
 var dataChannel: DataChannel? = null
 var localOffer: CustomSDPClass? = null
 val iceServers: MutableList<IceServer> = ArrayList()
@@ -53,7 +52,7 @@ val coroutineExceptionHandler = CoroutineExceptionHandler { _, throwable ->
     throwable.printStackTrace()
 }
 
-fun startP2P(context: P2PService2) {
+fun startP2P(context: P2PFgService) {
     PeerConnectionFactory.initialize(
         PeerConnectionFactory.InitializationOptions.builder(context).createInitializationOptions()
     )
@@ -89,49 +88,6 @@ fun startP2P(context: P2PService2) {
     }
 }
 
-fun connectPeer() {
-    if (localPeer == null) {
-        p2pViewModel!!.p2pState.value = "connecting"
-
-        localPeer = peerConnectionFactory!!.createPeerConnection(iceServers, getPCObserver())
-        dataChannel = localPeer!!.createDataChannel(
-            "dataChannel-${timeID()}", DataChannel.Init()
-        )
-        dataChannel!!.registerObserver(getDataChannelObserver(dataChannel!!))
-
-        val mediaConstraints = MediaConstraints().apply {
-            mandatory.add(MediaConstraints.KeyValuePair("IceRestart", "true"))
-        }
-        localPeer!!.createOffer(
-            object : SdpObserver {
-                override fun onCreateSuccess(sdpOffer: SessionDescription) {
-                    localPeer!!.setLocalDescription(getLocalSdpObserver(localPeer!!), sdpOffer)
-                }
-
-                override fun onSetSuccess() {
-                    println("Offer set success")
-                }
-
-                override fun onCreateFailure(p0: String?) {
-                    println("Offer create failed")
-                }
-
-                override fun onSetFailure(p0: String?) {
-                    println("Offer set failed")
-                }
-            }, mediaConstraints
-        )
-    }
-}
-
-fun disconnectPeer() {
-    if (localPeer != null) {
-        localPeer!!.dispose()
-        localPeer = null
-        p2pViewModel!!.p2pState.value = "offline"
-    }
-}
-
 fun sendData(cmd: Cmd, timeout: Long = 5000): CompletableFuture<String> {
     val promise = CompletableFuture<String>()
     Handler(Looper.getMainLooper()).postDelayed({
@@ -141,7 +97,7 @@ fun sendData(cmd: Cmd, timeout: Long = 5000): CompletableFuture<String> {
         }
     }, timeout)
 
-    if (dataChannel!!.state().name == "OPEN") {
+    if (dataChannel != null && dataChannel!!.state().name == "OPEN") {
         val pid = genPid()
         cmd.pid = pid
         promises[pid] = promise
@@ -160,7 +116,6 @@ fun receiveData(buffer: DataChannel.Buffer?) {
     data.get(bytes)
     val resp = String(bytes)
     val cmdResp = gson.fromJson(resp, CmdResp::class.java)
-    //println(cmd)
     if (cmdResp.status != "wait") {
         promises[cmdResp.pid]?.let {
             it.complete(cmdResp.content)
@@ -176,9 +131,7 @@ fun getDataChannelObserver(dataChannel: DataChannel): DataChannel.Observer {
 
         override fun onStateChange() {
             val state = dataChannel.state()
-            println("DataChannel: onStateChange: $state")
             if (state.name == "CLOSED") {
-                println(state)
                 dataChannel.dispose()
             }
         }
@@ -262,8 +215,7 @@ fun getRemoteSdpObserver(peer: PeerConnection): SdpObserver {
 
 @OptIn(DelicateCoroutinesApi::class)
 fun getPCObserver(): PeerConnection.Observer {
-
-
+    P2PFgService.instance!!.localPeer
     val pcObserver: PeerConnection.Observer = object : PeerConnection.Observer {
         val TAG: String = "PEER_CONNECTION_FACTORY"
 
@@ -274,7 +226,7 @@ fun getPCObserver(): PeerConnection.Observer {
                 if (state == "DISCONNECTED" || state == "CLOSED") {
                     mainContext!!.runOnUiThread {
                         Handler(Looper.getMainLooper()).postDelayed({
-                            connectPeer()
+                            P2PFgService.instance!!.connectPeer()
                         }, 5000)
                     }
                 }
@@ -284,13 +236,14 @@ fun getPCObserver(): PeerConnection.Observer {
         override fun onIceConnectionChange(onIceConnectionChange: PeerConnection.IceConnectionState) {
             val state = onIceConnectionChange.name
             Log.d(TAG, "onIceConnectionChange ${onIceConnectionChange.name}")
+            //val localPeer = P2PFgService.instance!!.localPeer
             if (state == "DISCONNECTED") {
-                val state1 = localPeer!!.connectionState().name
+                val state1 = P2PFgService.instance!!.localPeer!!.connectionState().name
                 println(state1)
                 println("Peer disconnected.")
                 p2pViewModel!!.p2pState.value = "offline"
-                localPeer!!.dispose()
-                localPeer = null
+                P2PFgService.instance!!.localPeer!!.dispose()
+                P2PFgService.instance!!.localPeer = null
                 /*mainContext!!.runOnUiThread(Runnable {
                     Handler(Looper.getMainLooper()).postDelayed({
                         connectPeer()
@@ -298,14 +251,17 @@ fun getPCObserver(): PeerConnection.Observer {
                 })*/
             }
             if (state == "FAILED") {
-                val state2 = localPeer!!.connectionState().name
+                val state2 = P2PFgService.instance!!.localPeer!!.connectionState().name
                 println(state2)
                 println("Peer failed.")
                 p2pViewModel!!.p2pState.value = "offline"
-                localPeer = null
+                P2PFgService.instance!!.localPeer = null
             }
             if (state == "COMPLETED") {
                 p2pViewModel!!.p2pState.value = "online"
+                mainContext!!.runOnUiThread {
+                    Toast.makeText(mainContext, "Connected", Toast.LENGTH_SHORT).show()
+                }
             }
         }
 
@@ -326,18 +282,28 @@ fun getPCObserver(): PeerConnection.Observer {
                     profile = "{name: 'User99999'}"
                 )
                 localOffer = CustomSDPClass(
-                    type = "offer", sdp = localPeer!!.localDescription.description, extras = extras
+                    type = "offer",
+                    sdp = P2PFgService.instance!!.localPeer!!.localDescription.description,
+                    extras = extras
                 )
                 GlobalScope.launch(Dispatchers.IO + coroutineExceptionHandler) {
                     val packed = localOffer?.let { PackedOffer(offer = it) }
-                    val result = shopApi.makeOffer(packed)
-                    if (result.isSuccessful) {
-                        val sdpJson = result.body()!!.getAsJsonObject("answer")
-                        val customAnswer = gson.fromJson(sdpJson, CustomSDPClass::class.java)
-                        localPeer!!.setRemoteDescription(
-                            getRemoteSdpObserver(localPeer!!),
-                            SessionDescription(Type.ANSWER, customAnswer.sdp)
-                        )
+                    try {
+                        val result = shopApi.makeOffer(packed)
+                        if (result.isSuccessful) {
+                            val sdpJson = result.body()!!.getAsJsonObject("answer")
+                            val customAnswer = gson.fromJson(sdpJson, CustomSDPClass::class.java)
+                            P2PFgService.instance!!.localPeer!!.setRemoteDescription(
+                                getRemoteSdpObserver(P2PFgService.instance!!.localPeer!!),
+                                SessionDescription(Type.ANSWER, customAnswer.sdp)
+                            )
+                        }
+                    } catch (e: Exception) {
+                        p2pViewModel!!.p2pState.value = "offline"
+                        mainContext!!.runOnUiThread {
+                            Toast.makeText(mainContext, "Verify internet", Toast.LENGTH_SHORT).show()
+                        }
+                        println(e)
                     }
                 }
             }

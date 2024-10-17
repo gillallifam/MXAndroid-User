@@ -112,18 +112,17 @@ class BrowserActivity : ComponentActivity() {
         val productDao = db.productDao()*/
         //var products=  listOf<Product>()
         browserViewModel = ViewModelProvider(this)[BrowserViewModel::class.java]
-        p2pApi!!.updateProducts().thenAccept { allData ->
+        p2pApi!!.updateProducts().thenAccept { jsonString ->
             try {
-                val data = gson.fromJson(allData, Array<Product>::class.java).asList()
-                println(data)
-                for ((index, prod) in data.withIndex()) {
+                val products = gson.fromJson(jsonString, Array<Product>::class.java).asList()
+                for ((index, prod) in products.withIndex()) {
                     p2pApi!!.getImage(prod.cod).thenAccept { imgData ->
                         try {
-                            val prodIdx = data[index]
+                            val prodIdx = products[index]
                             prodIdx.img = imageHandler2(imgData)
-                            if (index == data.size - 1) {
-                                browserViewModel!!.allProducts.addAll(data)
-                                browserViewModel!!.selectedProducts.addAll(data.filter {
+                            if (index == products.size - 1) {
+                                browserViewModel!!.allProducts.addAll(products)
+                                browserViewModel!!.selectedProducts.addAll(products.filter {
                                     it.nameSho.startsWith(
                                         browserViewModel!!.filter
                                     )

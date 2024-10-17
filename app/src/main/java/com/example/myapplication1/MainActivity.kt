@@ -5,10 +5,13 @@ import android.app.ActivityManager
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
+import android.os.Build
 import android.os.Bundle
 import android.provider.Settings.Secure
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -22,15 +25,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.core.app.ActivityCompat
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import com.example.myapplication1.p2pNet.P2PAPI
-import com.example.myapplication1.p2pNet.P2PService2
+import com.example.myapplication1.p2pNet.P2PFgService
 import com.example.myapplication1.p2pNet.P2PViewModel
-import com.example.myapplication1.p2pNet.connectPeer
 import com.example.myapplication1.p2pNet.deviceUUID
-import com.example.myapplication1.p2pNet.disconnectPeer
-import com.example.myapplication1.p2pNet.localPeer
 import com.example.myapplication1.p2pNet.mainContext
 import com.example.myapplication1.p2pNet.p2pApi
 import com.example.myapplication1.p2pNet.p2pViewModel
@@ -52,14 +53,26 @@ class MainActivity : ComponentActivity() {
         return false
     }
 
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     @SuppressLint("HardwareIds")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        if (!isMyServiceRunning(P2PFgService::class.java)) {
+            P2PFgService.startService(this, "some string you want to pass into the service")
+        } else {
+            P2PFgService.instance!!.connectPeer()
+            //p2pViewModel!!.p2pState.value = "online"
+        }
+
+        ActivityCompat.requestPermissions(
+            this@MainActivity,
+            arrayOf(android.Manifest.permission.POST_NOTIFICATIONS),
+            0
+        )
+
         mainViewModel = ViewModelProvider(this)[MainViewModel::class.java]
         p2pViewModel = ViewModelProvider(this)[P2PViewModel::class.java]
-        val servRunning = isMyServiceRunning(P2PService2::class.java)
-        val serviceIntent = Intent(this, P2PService2::class.java)
-        val serv = startService(serviceIntent)
         p2pApi = P2PAPI.instance
         mainContext = this
 
@@ -80,17 +93,17 @@ class MainActivity : ComponentActivity() {
                         modifier = Modifier.padding(20.dp)
                     )
 
-                    if (p2pViewModel!!.p2pState.value != "online") {
+                    if (p2pViewModel!!.p2pState.value == "offline") {
                         Button(
                             onClick = {
-                                connectPeer()
+                                P2PFgService.instance!!.connectPeer()
                             }) {
                             Text("Connect")
                         }
-                    }else{
+                    } else {
                         Button(
                             onClick = {
-                                disconnectPeer()
+                                P2PFgService.instance!!.disconnectPeer()
                             }) {
                             Text("Disconnect")
                         }
@@ -99,14 +112,19 @@ class MainActivity : ComponentActivity() {
                     Button(
                         onClick = {
                             if (p2pViewModel!!.p2pState.value === "online") {
-                                startActivity(Intent(this@MainActivity, BrowserActivity::class.java))
+                                startActivity(
+                                    Intent(
+                                        this@MainActivity,
+                                        BrowserActivity::class.java
+                                    )
+                                )
                             }
                         }) {
                         Text("Browse")
                     }
                     Button(onClick = {
                         p2pApi!!.peerPing2().thenApply { result ->
-                            if (result.isNotEmpty()) mainViewModel!!.dateText = result
+                            if (result.isNotEmpty()) mainViewModel.dateText = result
                         }
                     }) {
                         Text("Msg")
@@ -135,15 +153,16 @@ class MainActivity : ComponentActivity() {
         val p2pStateObserver = Observer<String> { stateStr ->
             //if (stateStr == "online") this.startActivity(Intent(this, BrowserActivity::class.java))
         }
-        mainViewModel!!.p2pState.observe(this, p2pStateObserver)
+        mainViewModel.p2pState.observe(this, p2pStateObserver)
     }
 
-    override fun onDestroy() {
+    /*override fun onDestroy() {
         super.onDestroy()
-        if (localPeer != null) {
-            localPeer!!.dispose()
+
+        if (P2PFgService.instance!!.localPeer != null) {
+            P2PFgService.instance!!.localPeer!!.dispose()
         }
-    }
+    }*/
 }
 
 
