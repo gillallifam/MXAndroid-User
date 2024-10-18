@@ -1,5 +1,6 @@
 package com.example.myapplication1
 
+import AppDatabase
 import Product
 import android.annotation.SuppressLint
 import android.icu.text.NumberFormat
@@ -37,6 +38,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModelProvider
+import androidx.room.Room
 import com.example.myapplication1.p2pNet.imageHandler2
 import com.example.myapplication1.p2pNet.p2pApi
 import com.example.myapplication1.ui.theme.MyApplication1Theme
@@ -45,6 +47,7 @@ import java.util.Locale
 class BrowserActivity : ComponentActivity() {
 
     private lateinit var browserViewModel: BrowserViewModel
+
     @Composable
     fun ProdCard(index: Int, prod: Product) {
         //var visible by remember { mutableStateOf(true) }
@@ -104,12 +107,17 @@ class BrowserActivity : ComponentActivity() {
     @SuppressLint("HardwareIds")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        /*val dbB = Room.databaseBuilder(
+        val dbB = Room.databaseBuilder(
             applicationContext,
             AppDatabase::class.java, "AppDatabase"
         )
-        val db = dbB.build()
-        val productDao = db.productDao()*/
+        try {
+            val db = dbB.allowMainThreadQueries().build()
+        } catch (e: Exception) {
+            println(e)
+        }
+
+        //val productDao = db.productDao()
         //var products=  listOf<Product>()
         browserViewModel = ViewModelProvider(this)[BrowserViewModel::class.java]
         p2pApi!!.updateProducts().thenAccept { jsonString ->

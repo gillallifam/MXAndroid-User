@@ -5,12 +5,25 @@ import androidx.room.Query
 
 @Dao
 interface ProductDao {
-    @Query("SELECT * FROM Products")
+    @Query("SELECT * FROM Product")
     fun getAll(): List<Product>
 
     @Insert
-    fun insertProduct(vararg product: Product)
+    fun insertProduct(vararg prod: Product)
 
     @Delete
-    fun delete(product: Product)
+    fun delete(prod: Product)
 }
+
+@Dao
+interface UserDao {
+    @Query("SELECT * FROM User")
+    fun getAll(): List<User>
+
+    @Insert
+    fun insertProduct(vararg user: User)
+
+    @Delete
+    fun delete(user: User)
+}
+

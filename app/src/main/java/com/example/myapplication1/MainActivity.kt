@@ -57,6 +57,7 @@ class MainActivity : ComponentActivity() {
     @SuppressLint("HardwareIds")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        mainContext = this
 
         if (!isMyServiceRunning(P2PFgService::class.java)) {
             P2PFgService.startService(this, "some string you want to pass into the service")
@@ -74,7 +75,7 @@ class MainActivity : ComponentActivity() {
         mainViewModel = ViewModelProvider(this)[MainViewModel::class.java]
         p2pViewModel = ViewModelProvider(this)[P2PViewModel::class.java]
         p2pApi = P2PAPI.instance
-        mainContext = this
+
 
         setContent {
             MyApplication1Theme {

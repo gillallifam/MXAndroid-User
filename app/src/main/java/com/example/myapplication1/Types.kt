@@ -1,6 +1,7 @@
 import android.graphics.Bitmap
 import androidx.room.ColumnInfo
 import androidx.room.Entity
+import androidx.room.Ignore
 import androidx.room.PrimaryKey
 
 data class OfferExtras(
@@ -46,10 +47,16 @@ data class ImageModel(
     val img: String,
 )
 
-@Entity(tableName = "Products")
+@Entity
+data class User(
+    @PrimaryKey val uid: Int,
+    @ColumnInfo(name = "first_name") val firstName: String?,
+    @ColumnInfo(name = "last_name") val lastName: String?,
+)
+
+@Entity
 data class Product(
-    @PrimaryKey
-    val cod: String,
+    @PrimaryKey val cod: String,
     val nameSho: String,
     val nameLon: String? = null,
     val qnt: Int,
@@ -74,9 +81,11 @@ data class Product(
     val description: String,
     val fractionCalc: String,
     val lastUpdate: Long,
-    var img: Bitmap? = null,
     var visible: Boolean = true,
-)
+) {
+    @Ignore
+    var img: Bitmap? = null
+}
 
 data class Load(
 
