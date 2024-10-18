@@ -36,7 +36,7 @@ interface UserDao {
     fun delete(user: User)
 }
 
-@Database(entities = [User::class, Product2::class], version = 2)
+@Database(entities = [User::class, Product2::class], version = 5)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun userDao(): UserDao
     abstract fun product2Dao(): Products2Dao
