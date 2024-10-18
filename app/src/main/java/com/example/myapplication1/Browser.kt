@@ -1,5 +1,4 @@
 package com.example.myapplication1
-
 import android.annotation.SuppressLint
 import android.icu.text.NumberFormat
 import android.os.Bundle
@@ -37,12 +36,13 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModelProvider
 import androidx.room.Room
+import com.example.myapplication1.BrowserViewModel
 import com.example.myapplication1.p2pNet.imageHandler2
 import com.example.myapplication1.p2pNet.p2pApi
 import com.example.myapplication1.ui.theme.MyApplication1Theme
 import java.util.Locale
 
-class BrowserActivity : ComponentActivity() {
+class Browser : ComponentActivity() {
 
     private lateinit var browserViewModel: BrowserViewModel
 
@@ -105,18 +105,6 @@ class BrowserActivity : ComponentActivity() {
     @SuppressLint("HardwareIds")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val dbB = Room.databaseBuilder(
-            applicationContext,
-            AppDatabase::class.java, "AppDatabase"
-        )
-        try {
-            val db = dbB.allowMainThreadQueries().build()
-        } catch (e: Exception) {
-            println(e)
-        }
-
-        //val productDao = db.productDao()
-        //var products=  listOf<Product>()
         browserViewModel = ViewModelProvider(this)[BrowserViewModel::class.java]
         p2pApi!!.updateProducts().thenAccept { jsonString ->
             try {
@@ -127,8 +115,8 @@ class BrowserActivity : ComponentActivity() {
                             val prodIdx = products[index]
                             prodIdx.img = imageHandler2(imgData)
                             if (index == products.size - 1) {
-                                browserViewModel!!.allProducts.addAll(products)
-                                browserViewModel!!.selectedProducts.addAll(products.filter {
+                                browserViewModel.allProducts.addAll(products)
+                                browserViewModel.selectedProducts.addAll(products.filter {
                                     it.nameSho.startsWith(
                                         browserViewModel!!.filter
                                     )
@@ -158,9 +146,9 @@ class BrowserActivity : ComponentActivity() {
                     Button(
                         //enabled = viewModel!!.p2pState == "offline",
                         onClick = {
-                            if (browserViewModel!!.filter == "Pizza")
-                                browserViewModel!!.filter = "Batata"
-                            else browserViewModel!!.filter = "Pizza"
+                            if (browserViewModel.filter == "Pizza")
+                                browserViewModel.filter = "Batata"
+                            else browserViewModel.filter = "Pizza"
 
                             /*browserViewModel!!.allProducts.forEach{it.visible = false}
                             browserViewModel!!.allProducts.forEach{it.visible = it.nameSho.startsWith(
@@ -170,9 +158,9 @@ class BrowserActivity : ComponentActivity() {
                             browserViewModel!!.selectedProducts.addAll(browserViewModel!!.allProducts.filter {
                                 it.visible
                             })*/
-                            browserViewModel!!.selectedProducts.clear()
-                            browserViewModel!!.selectedProducts.addAll(browserViewModel!!.allProducts.filter {
-                                it.nameSho.startsWith(browserViewModel!!.filter)
+                            browserViewModel.selectedProducts.clear()
+                            browserViewModel.selectedProducts.addAll(browserViewModel.allProducts.filter {
+                                it.nameSho.startsWith(browserViewModel.filter)
                             })
                         }) {
                         Text("Filter")
@@ -183,4 +171,3 @@ class BrowserActivity : ComponentActivity() {
         }
     }
 }
-

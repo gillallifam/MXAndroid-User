@@ -4,7 +4,9 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.icu.text.DecimalFormat
 import android.icu.text.NumberFormat
+import android.os.Build
 import android.util.Base64
+import androidx.annotation.RequiresApi
 import com.google.gson.Gson
 import java.net.InetAddress
 import java.net.UnknownHostException
@@ -25,6 +27,7 @@ fun decodeBMP (encodedString: String): Bitmap {
     return BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 fun timeID (): String {
     return Integer.toString(
         java.time.Instant.now().toEpochMilli().toInt(),

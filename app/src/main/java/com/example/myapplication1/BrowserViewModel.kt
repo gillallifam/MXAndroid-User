@@ -1,7 +1,5 @@
 package com.example.myapplication1
 
-import Product
-import android.graphics.Bitmap
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf

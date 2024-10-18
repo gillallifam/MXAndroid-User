@@ -1,19 +1,20 @@
 package com.example.myapplication1.p2pNet
 
-import Cmd
-import CmdResp
-import CustomSDPClass
-import OfferExtras
-import PackedOffer
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import android.widget.Toast
+import androidx.annotation.RequiresApi
+import com.example.myapplication1.Cmd
+import com.example.myapplication1.CmdResp
+import com.example.myapplication1.CustomSDPClass
 import com.example.myapplication1.MainActivity
 import com.example.myapplication1.NetworkUtils.Companion.shopApi
+import com.example.myapplication1.OfferExtras
+import com.example.myapplication1.PackedOffer
 import com.example.myapplication1.genPid
 import com.example.myapplication1.gson
-import com.example.myapplication1.timeID
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
@@ -23,7 +24,6 @@ import org.json.JSONException
 import org.json.JSONObject
 import org.webrtc.DataChannel
 import org.webrtc.IceCandidate
-import org.webrtc.MediaConstraints
 import org.webrtc.MediaStream
 import org.webrtc.PeerConnection
 import org.webrtc.PeerConnection.IceServer
@@ -219,6 +219,7 @@ fun getPCObserver(): PeerConnection.Observer {
     val pcObserver: PeerConnection.Observer = object : PeerConnection.Observer {
         val TAG: String = "PEER_CONNECTION_FACTORY"
 
+        @RequiresApi(Build.VERSION_CODES.O)
         override fun onSignalingChange(signalingState: PeerConnection.SignalingState) {
             Log.d(TAG, "onSignalingChange")
             val state = signalingState.name

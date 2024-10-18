@@ -1,7 +1,9 @@
 package com.example.myapplication1.p2pNet
 
-import Cmd
-import Load
+import com.example.myapplication1.Cmd
+import com.example.myapplication1.Load
+import com.example.myapplication1.p2pNet.deviceUUID
+import com.example.myapplication1.p2pNet.sendData
 import java.util.concurrent.CompletableFuture
 
 class P2PAPI {

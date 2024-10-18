@@ -1,3 +1,5 @@
+package com.example.myapplication1
+
 import android.graphics.Bitmap
 import androidx.room.ColumnInfo
 import androidx.room.Entity
@@ -48,13 +50,6 @@ data class ImageModel(
 )
 
 @Entity
-data class User(
-    @PrimaryKey val uid: Int,
-    @ColumnInfo(name = "first_name") val firstName: String?,
-    @ColumnInfo(name = "last_name") val lastName: String?,
-)
-
-@Entity
 data class Product(
     @PrimaryKey val cod: String,
     val nameSho: String,
@@ -87,8 +82,20 @@ data class Product(
     var img: Bitmap? = null
 }
 
-data class Load(
+/*@Entity
+data class Product2(
+    @PrimaryKey val cod: String,
+    @ColumnInfo(name = "namesho") val nameSho: String?,
+)*/
 
+data class Load(
     val cod: String? = null,
     val img: String? = null,
 )
+
+/*
+@Database(entities = [User::class, Product2::class], version = 3)
+abstract class AppDatabase : RoomDatabase() {
+    abstract fun userDao(): UserDao
+    //abstract fun product2Dao(): Producs2Dao
+}*/

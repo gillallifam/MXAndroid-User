@@ -8,7 +8,6 @@ import android.content.SharedPreferences
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings.Secure
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.annotation.RequiresApi
@@ -28,15 +27,15 @@ import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
+import androidx.room.Room
 import com.example.myapplication1.p2pNet.P2PAPI
-import com.example.myapplication1.p2pNet.P2PFgService
 import com.example.myapplication1.p2pNet.P2PViewModel
+import com.example.myapplication1.p2pNet.P2PFgService
 import com.example.myapplication1.p2pNet.deviceUUID
 import com.example.myapplication1.p2pNet.mainContext
 import com.example.myapplication1.p2pNet.p2pApi
 import com.example.myapplication1.p2pNet.p2pViewModel
 import com.example.myapplication1.ui.theme.MyApplication1Theme
-
 
 class MainActivity : ComponentActivity() {
 
@@ -58,6 +57,25 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         mainContext = this
+        try {
+            val db = Room.databaseBuilder(
+                applicationContext,
+                AppDatabase::class.java, "AppDatabase"
+            )
+                .allowMainThreadQueries()
+                .fallbackToDestructiveMigration()
+                .build()
+
+            println(db)
+            val dao1 = db.userDao()
+            val data1: List<User> = dao1.getAll()
+            println(data1)
+            val dao2 = db.product2Dao()
+            val data2: List<Product2> = dao2.getAll()
+            println(data2)
+        } catch (e: Exception) {
+            println(e)
+        }
 
         if (!isMyServiceRunning(P2PFgService::class.java)) {
             P2PFgService.startService(this, "some string you want to pass into the service")
@@ -75,7 +93,6 @@ class MainActivity : ComponentActivity() {
         mainViewModel = ViewModelProvider(this)[MainViewModel::class.java]
         p2pViewModel = ViewModelProvider(this)[P2PViewModel::class.java]
         p2pApi = P2PAPI.instance
-
 
         setContent {
             MyApplication1Theme {
@@ -116,7 +133,7 @@ class MainActivity : ComponentActivity() {
                                 startActivity(
                                     Intent(
                                         this@MainActivity,
-                                        BrowserActivity::class.java
+                                        Browser::class.java
                                     )
                                 )
                             }
@@ -130,10 +147,10 @@ class MainActivity : ComponentActivity() {
                     }) {
                         Text("Msg")
                     }
-                    Text(mainViewModel!!.dateText)
-                    if (mainViewModel!!.logoImage != null) {
+                    Text(mainViewModel.dateText)
+                    if (mainViewModel.logoImage != null) {
                         Image(
-                            bitmap = mainViewModel!!.logoImage!!.asImageBitmap(),
+                            bitmap = mainViewModel.logoImage!!.asImageBitmap(),
                             contentDescription = "img logo"
                         )
                     }

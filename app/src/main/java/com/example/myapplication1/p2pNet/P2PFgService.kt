@@ -7,11 +7,22 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.os.IBinder
 import android.widget.Toast
+import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import com.example.myapplication1.MainActivity
 import com.example.myapplication1.R
+import com.example.myapplication1.p2pNet.dataChannel
+import com.example.myapplication1.p2pNet.getDataChannelObserver
+import com.example.myapplication1.p2pNet.getLocalSdpObserver
+import com.example.myapplication1.p2pNet.getPCObserver
+import com.example.myapplication1.p2pNet.iceServers
+import com.example.myapplication1.p2pNet.mainContext
+import com.example.myapplication1.p2pNet.p2pViewModel
+import com.example.myapplication1.p2pNet.peerConnectionFactory
+import com.example.myapplication1.p2pNet.startP2P
 import com.example.myapplication1.timeID
 import org.webrtc.DataChannel
 import org.webrtc.MediaConstraints
@@ -27,6 +38,7 @@ class P2PFgService : Service() {
     // onStartCommand can be called multiple times, so we keep track of "started" state manually
     private var isStarted = false
 
+    @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate() {
         super.onCreate()
         // initialize dependencies here (e.g. perform dependency injection)
@@ -45,6 +57,7 @@ class P2PFgService : Service() {
         return null // bound Service is a different story
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (!isStarted) {
             makeForeground()
@@ -58,6 +71,7 @@ class P2PFgService : Service() {
         return START_STICKY // makes sense for a Foreground Service, or even START_REDELIVER_INTENT
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     private fun makeForeground() {
         val intent = Intent(this, MainActivity::class.java)
         val pendingIntent = PendingIntent.getActivity(
@@ -79,6 +93,7 @@ class P2PFgService : Service() {
         startForeground(ONGOING_NOTIFICATION_ID, notification)
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     private fun createServiceNotificationChannel() {
 
         val channel = NotificationChannel(
@@ -90,6 +105,7 @@ class P2PFgService : Service() {
         notificationManager.createNotificationChannel(channel)
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     fun connectPeer() {
         if (localPeer == null) {
             mainContext!!.runOnUiThread {
@@ -142,6 +158,7 @@ class P2PFgService : Service() {
         var instance: P2PFgService? = null
         private const val EXTRA_DEMO = "EXTRA_DEMO"
 
+        @RequiresApi(Build.VERSION_CODES.O)
         fun startService(context: Context, demoString: String) {
             val intent = Intent(context, P2PFgService::class.java)
             intent.putExtra(EXTRA_DEMO, demoString)

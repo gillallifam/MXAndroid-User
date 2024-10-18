@@ -1,7 +1,7 @@
 package com.example.myapplication1.p2pNet
 
-import ImageModel
 import android.graphics.Bitmap
+import com.example.myapplication1.ImageModel
 import com.example.myapplication1.decodeBMP
 import com.example.myapplication1.gson
 

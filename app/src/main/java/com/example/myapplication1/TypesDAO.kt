@@ -2,6 +2,8 @@ import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.Query
+import com.example.myapplication1.Product
+import com.example.myapplication1.User
 
 @Dao
 interface ProductDao {
