@@ -134,7 +134,7 @@ class MainActivity : ComponentActivity() {
 
                     Button(
                         onClick = {
-                            if (p2pViewModel!!.allProducts.size > 0) {
+                            if (p2pViewModel!!.prodCache2.values.isNotEmpty()) {
                                 startActivity(
                                     Intent(
                                         this@MainActivity,

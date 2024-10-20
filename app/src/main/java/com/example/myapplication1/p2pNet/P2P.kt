@@ -45,6 +45,7 @@ var p2pApi: P2PAPI? = null
 const val peerAutoReconnect = true
 var p2pPrefs: SharedPreferences? = null
 var shopLastUpdate: Long = 0
+val filterOptions = arrayOf("*", "Batata", "Pizza")
 
 val promises: MutableMap<String, CompletableFuture<String>> = mutableMapOf()
 
@@ -114,19 +115,6 @@ fun sendData(cmd: Cmd, timeout: Long = 5000): CompletableFuture<String> {
         println("Data channel not open")
     }
     return promise
-}
-
-fun handleBroadcast(cmdResp: CmdResp) {
-    when (cmdResp.cmd) {
-        "prodsUpdate" -> {
-            p2pApi!!.shopLastUpdate().thenAccept { updateTime ->
-                val updateNum = updateTime.toLong()
-                if (shopLastUpdate < updateNum) {
-                    updateCaches(shopLastUpdate, updateTime)
-                }
-            }
-        }
-    }
 }
 
 fun receiveData(buffer: DataChannel.Buffer?) {

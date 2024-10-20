@@ -34,15 +34,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.ViewModelProvider
+import com.example.myapplication1.p2pNet.filterOptions
 import com.example.myapplication1.p2pNet.p2pViewModel
+import com.example.myapplication1.p2pNet.updateFilter
 import com.example.myapplication1.types.Product
 import com.example.myapplication1.ui.theme.MyApplication1Theme
 import java.util.Locale
 
 class BrowserActivity : ComponentActivity() {
-
-    private lateinit var browserViewModel: BrowserViewModel
 
     @Composable
     fun ProdCard(index: Int, prod: Product) {
@@ -69,9 +68,9 @@ class BrowserActivity : ComponentActivity() {
                 )
             ) {
                 Row(modifier = Modifier.padding(5.dp)) {
-                    if (browserViewModel.selectedProducts[index].img != null) {
+                    if (p2pViewModel!!.selectedProducts[index].img != null) {
                         Image(
-                            bitmap = browserViewModel.selectedProducts[index].img!!.asImageBitmap(),
+                            bitmap = p2pViewModel!!.selectedProducts[index].img!!.asImageBitmap(),
                             contentDescription = "image",
                             modifier = Modifier
                                 .padding(8.dp)
@@ -103,14 +102,7 @@ class BrowserActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        browserViewModel = ViewModelProvider(this)[BrowserViewModel::class.java]
-        browserViewModel.selectedProducts.addAll(p2pViewModel!!.allProducts)
-        /*browserViewModel.selectedProducts.addAll(p2pViewModel!!.allProducts.filter {
-            it.nameSho.startsWith(
-                browserViewModel.filter
-            )
-        })*/
+        updateFilter()
 
         setContent {
             MyApplication1Theme {
@@ -126,28 +118,18 @@ class BrowserActivity : ComponentActivity() {
                     Button(
                         //enabled = viewModel!!.p2pState == "offline",
                         onClick = {
-                            if (browserViewModel.filter == "Pizza")
-                                browserViewModel.filter = "Batata"
-                            else browserViewModel.filter = "Pizza"
-
-
-
-                            /*browserViewModel!!.allProducts.forEach{it.visible = false}
-                            browserViewModel!!.allProducts.forEach{it.visible = it.nameSho.startsWith(
-                                browserViewModel!!.filter
-                            )}
-                            browserViewModel!!.selectedProducts.clear()
-                            browserViewModel!!.selectedProducts.addAll(browserViewModel!!.allProducts.filter {
-                                it.visible
-                            })*/
-                            browserViewModel.selectedProducts.clear()
-                            browserViewModel.selectedProducts.addAll(p2pViewModel!!.allProducts.filter {
-                                it.nameSho.startsWith(browserViewModel.filter)
-                            })
+                            val filterIndex = filterOptions.indexOf(p2pViewModel!!.filter)
+                            val nextIndex = filterIndex + 1
+                            if (nextIndex == filterOptions.size) {
+                                p2pViewModel!!.filter = filterOptions[0]
+                            } else {
+                                p2pViewModel!!.filter = filterOptions[nextIndex]
+                            }
+                            updateFilter()
                         }) {
-                        Text("Filter")
+                        Text(p2pViewModel!!.filter)
                     }
-                    RecyclerView(browserViewModel.selectedProducts)
+                    RecyclerView(p2pViewModel!!.selectedProducts)
                 }
             }
         }

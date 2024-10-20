@@ -5,8 +5,6 @@ import com.example.myapplication1.types.ImageModel
 import com.example.myapplication1.decodeBMP
 import com.example.myapplication1.gson
 import com.example.myapplication1.imageDao
-import com.example.myapplication1.imgCache
-import com.example.myapplication1.prodCache
 import com.example.myapplication1.productDao
 import com.example.myapplication1.types.Image
 import com.example.myapplication1.types.Product
@@ -26,19 +24,29 @@ fun imageHandler2(data: String): Bitmap? {
 }
 
 fun fillCaches() {
-    prodCache = productDao!!.getAll().associateBy { it.cod } as LinkedHashMap<String, Product>
-    imgCache = imageDao!!.getAll().associateBy { it.cod } as LinkedHashMap<String, Image>
-    prodCache.forEach { prod ->
-        val img = imgCache[prod.value.cod]
+    val allProdData = productDao!!.getAll()
+    val allImgData = imageDao!!.getAll()
+    p2pViewModel!!.imgCache2 = allImgData.associateBy { it.cod } as LinkedHashMap<String, Image>
+    allProdData.forEach { prod ->
+        val img = p2pViewModel!!.imgCache2[prod.cod]
         val bmp = decodeBMP(img!!.img)
-        prod.value.img = bmp
+        prod.img = bmp
     }
-    p2pViewModel!!.allProducts.clear()
-    val ini = java.time.Instant.now().toEpochMilli().toInt()
-    p2pViewModel!!.allProducts.addAll(prodCache.values)
-    val end = java.time.Instant.now().toEpochMilli().toInt()
-    val time = end - ini
-    println(time)
+    p2pViewModel!!.prodCache2 = allProdData.associateBy { it.cod } as LinkedHashMap<String, Product>
+    updateFilter()
+}
+
+fun updateFilter() {
+    p2pViewModel!!.selectedProducts.clear()
+    if (p2pViewModel!!.filter == "*") {
+        p2pViewModel!!.selectedProducts.addAll(p2pViewModel!!.prodCache2.values)
+    } else {
+        p2pViewModel!!.selectedProducts.addAll(p2pViewModel!!.prodCache2.values.filter {
+            it.nameSho.startsWith(
+                p2pViewModel!!.filter
+            )
+        })
+    }
 }
 
 fun updateCaches(localTimestamp: Long, remoteTimestamp: String) {

@@ -27,13 +27,10 @@ class P2PFgService : Service() {
 
     var localPeer: PeerConnection? = null
     private lateinit var notificationManager: NotificationManager
-
-    // onStartCommand can be called multiple times, so we keep track of "started" state manually
     private var isStarted = false
 
     override fun onCreate() {
         super.onCreate()
-        // initialize dependencies here (e.g. perform dependency injection)
         notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         startP2P(this)
         instance = this
@@ -58,20 +55,15 @@ class P2PFgService : Service() {
     }
 
     override fun onBind(intent: Intent?): IBinder? {
-        return null // bound Service is a different story
+        return null
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (!isStarted) {
             makeForeground()
-            // place here any logic that should run just once when the Service is started
             isStarted = true
         }
-
-        // process the command here (e.g. retrieve extras from the Intent and act accordingly)
-        val demoString = intent?.getStringExtra(EXTRA_DEMO) ?: ""
-
-        return START_STICKY // makes sense for a Foreground Service, or even START_REDELIVER_INTENT
+        return START_STICKY
     }
 
     private fun makeForeground() {
@@ -80,14 +72,11 @@ class P2PFgService : Service() {
             this, 0, intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
 
-        // before calling startForeground, we must create a notification and a corresponding
-        // notification channel
-
         createServiceNotificationChannel()
 
         val notification: Notification = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("Marketpix service")
-            .setContentText("Gerenciando conexoes")
+            .setContentText("Gerenciando conexões")
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setContentIntent(pendingIntent)
             .build()
