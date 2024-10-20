@@ -22,7 +22,7 @@ data class Product(
     val expiration: String?,
     val expAlert: String?,
     val provider: String?,
-    //val categories: Array<String>,
+    val categories: List<String>,
     val notify: String?,
     val active: Boolean?,
     val showStock: Boolean?,
