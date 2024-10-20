@@ -1,18 +1,17 @@
 package com.example.myapplication1.p2pNet
 
-import android.os.Build
+import android.content.SharedPreferences
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import android.widget.Toast
-import androidx.annotation.RequiresApi
-import com.example.myapplication1.Cmd
-import com.example.myapplication1.CmdResp
-import com.example.myapplication1.CustomSDPClass
+import com.example.myapplication1.types.Cmd
+import com.example.myapplication1.types.CmdResp
+import com.example.myapplication1.types.CustomSDPClass
 import com.example.myapplication1.MainActivity
 import com.example.myapplication1.NetworkUtils.Companion.shopApi
-import com.example.myapplication1.OfferExtras
-import com.example.myapplication1.PackedOffer
+import com.example.myapplication1.types.OfferExtras
+import com.example.myapplication1.types.PackedOffer
 import com.example.myapplication1.genPid
 import com.example.myapplication1.gson
 import kotlinx.coroutines.CoroutineExceptionHandler
@@ -35,7 +34,6 @@ import org.webrtc.SessionDescription.Type
 import java.nio.ByteBuffer
 import java.util.concurrent.CompletableFuture
 
-//var localPeer: PeerConnection? = null
 var dataChannel: DataChannel? = null
 var localOffer: CustomSDPClass? = null
 val iceServers: MutableList<IceServer> = ArrayList()
@@ -44,7 +42,9 @@ var p2pViewModel: P2PViewModel? = null
 var peerConnectionFactory: PeerConnectionFactory? = null
 var mainContext: MainActivity? = null
 var p2pApi: P2PAPI? = null
-const val peerAutoReconnect = false
+const val peerAutoReconnect = true
+var p2pPrefs: SharedPreferences? = null
+var shopLastUpdate: Long = 0
 
 val promises: MutableMap<String, CompletableFuture<String>> = mutableMapOf()
 
@@ -92,8 +92,13 @@ fun sendData(cmd: Cmd, timeout: Long = 5000): CompletableFuture<String> {
     val promise = CompletableFuture<String>()
     Handler(Looper.getMainLooper()).postDelayed({
         promises[cmd.pid]?.let {
-            it.complete("")
-            promises.remove(cmd.pid)
+            if (cmd.attempts == cmd.retry) {
+                it.complete("")
+                promises.remove(cmd.pid)
+            } else {
+                cmd.attempts += 1
+                sendData(cmd)
+            }
         }
     }, timeout)
 
@@ -105,9 +110,23 @@ fun sendData(cmd: Cmd, timeout: Long = 5000): CompletableFuture<String> {
         val buffer = ByteBuffer.wrap(payload.toByteArray())
         dataChannel!!.send(DataChannel.Buffer(buffer, false))
     } else {
+        println(cmd.cmd)
         println("Data channel not open")
     }
     return promise
+}
+
+fun handleBroadcast(cmdResp: CmdResp) {
+    when (cmdResp.cmd) {
+        "prodsUpdate" -> {
+            p2pApi!!.shopLastUpdate().thenAccept { updateTime ->
+                val updateNum = updateTime.toLong()
+                if (shopLastUpdate < updateNum) {
+                    updateCaches(shopLastUpdate, updateTime)
+                }
+            }
+        }
+    }
 }
 
 fun receiveData(buffer: DataChannel.Buffer?) {
@@ -116,6 +135,10 @@ fun receiveData(buffer: DataChannel.Buffer?) {
     data.get(bytes)
     val resp = String(bytes)
     val cmdResp = gson.fromJson(resp, CmdResp::class.java)
+    if (cmdResp.status == "broadcast") {
+        handleBroadcast(cmdResp)
+        return
+    }
     if (cmdResp.status != "wait") {
         promises[cmdResp.pid]?.let {
             it.complete(cmdResp.content)
@@ -131,6 +154,14 @@ fun getDataChannelObserver(dataChannel: DataChannel): DataChannel.Observer {
 
         override fun onStateChange() {
             val state = dataChannel.state()
+            if (state.name == "OPEN") {
+                p2pApi!!.shopLastUpdate().thenAccept { updateTime ->
+                    val updateNum = updateTime.toLong()
+                    if (shopLastUpdate < updateNum) {
+                        updateCaches(shopLastUpdate, updateTime)
+                    }
+                }
+            }
             if (state.name == "CLOSED") {
                 dataChannel.dispose()
             }
@@ -219,7 +250,6 @@ fun getPCObserver(): PeerConnection.Observer {
     val pcObserver: PeerConnection.Observer = object : PeerConnection.Observer {
         val TAG: String = "PEER_CONNECTION_FACTORY"
 
-        @RequiresApi(Build.VERSION_CODES.O)
         override fun onSignalingChange(signalingState: PeerConnection.SignalingState) {
             Log.d(TAG, "onSignalingChange")
             val state = signalingState.name
@@ -245,11 +275,6 @@ fun getPCObserver(): PeerConnection.Observer {
                 p2pViewModel!!.p2pState.value = "offline"
                 P2PFgService.instance!!.localPeer!!.dispose()
                 P2PFgService.instance!!.localPeer = null
-                /*mainContext!!.runOnUiThread(Runnable {
-                    Handler(Looper.getMainLooper()).postDelayed({
-                        connectPeer()
-                    }, 5000)
-                })*/
             }
             if (state == "FAILED") {
                 val state2 = P2PFgService.instance!!.localPeer!!.connectionState().name
@@ -260,9 +285,6 @@ fun getPCObserver(): PeerConnection.Observer {
             }
             if (state == "COMPLETED") {
                 p2pViewModel!!.p2pState.value = "online"
-                mainContext!!.runOnUiThread {
-                    Toast.makeText(mainContext, "Connected", Toast.LENGTH_SHORT).show()
-                }
             }
         }
 
@@ -274,7 +296,7 @@ fun getPCObserver(): PeerConnection.Observer {
             Log.d(TAG, "onIceGatheringChange")
             if (iceGatheringState.name == "COMPLETE") {
                 val extras = OfferExtras(
-                    peerOwner = "$deviceUUID>tst@android.mktpix",
+                    peerOwner = "$deviceUUID>$deviceUUID@android.mktpix",
                     shop = "LojaExemplo1",
                     userid = deviceUUID,
                     deviceUUID = deviceUUID,
@@ -293,16 +315,20 @@ fun getPCObserver(): PeerConnection.Observer {
                         val result = shopApi.makeOffer(packed)
                         if (result.isSuccessful) {
                             val sdpJson = result.body()!!.getAsJsonObject("answer")
-                            val customAnswer = gson.fromJson(sdpJson, CustomSDPClass::class.java)
-                            P2PFgService.instance!!.localPeer!!.setRemoteDescription(
-                                getRemoteSdpObserver(P2PFgService.instance!!.localPeer!!),
-                                SessionDescription(Type.ANSWER, customAnswer.sdp)
-                            )
+                            if (sdpJson != null) {
+                                val customAnswer =
+                                    gson.fromJson(sdpJson, CustomSDPClass::class.java)
+                                P2PFgService.instance!!.localPeer!!.setRemoteDescription(
+                                    getRemoteSdpObserver(P2PFgService.instance!!.localPeer!!),
+                                    SessionDescription(Type.ANSWER, customAnswer.sdp)
+                                )
+                            }
                         }
                     } catch (e: Exception) {
                         p2pViewModel!!.p2pState.value = "offline"
                         mainContext!!.runOnUiThread {
-                            Toast.makeText(mainContext, "Verify internet", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(mainContext, "Verify internet", Toast.LENGTH_SHORT)
+                                .show()
                         }
                         println(e)
                     }

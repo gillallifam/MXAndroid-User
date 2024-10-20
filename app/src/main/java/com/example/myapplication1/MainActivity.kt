@@ -4,7 +4,6 @@ import android.annotation.SuppressLint
 import android.app.ActivityManager
 import android.content.Context
 import android.content.Intent
-import android.content.SharedPreferences
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings.Secure
@@ -27,19 +26,23 @@ import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
-import androidx.room.Room
 import com.example.myapplication1.p2pNet.P2PAPI
 import com.example.myapplication1.p2pNet.P2PViewModel
 import com.example.myapplication1.p2pNet.P2PFgService
 import com.example.myapplication1.p2pNet.deviceUUID
+import com.example.myapplication1.p2pNet.fillCaches
 import com.example.myapplication1.p2pNet.mainContext
 import com.example.myapplication1.p2pNet.p2pApi
+import com.example.myapplication1.p2pNet.p2pPrefs
 import com.example.myapplication1.p2pNet.p2pViewModel
+import com.example.myapplication1.p2pNet.peerAutoReconnect
+import com.example.myapplication1.p2pNet.shopLastUpdate
 import com.example.myapplication1.ui.theme.MyApplication1Theme
+import java.util.Timer
+import kotlin.concurrent.timerTask
 
 class MainActivity : ComponentActivity() {
 
-    private var sharedPref: SharedPreferences? = null
     private lateinit var mainViewModel: MainViewModel
 
     private fun isMyServiceRunning(serviceClass: Class<*>): Boolean {
@@ -57,22 +60,12 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         mainContext = this
+        p2pPrefs = getSharedPreferences("p2pPrefs", MODE_PRIVATE)
+        mainViewModel = ViewModelProvider(this)[MainViewModel::class.java]
+        p2pViewModel = ViewModelProvider(this)[P2PViewModel::class.java]
         try {
-            val db = Room.databaseBuilder(
-                applicationContext,
-                AppDatabase::class.java, "AppDatabase"
-            )
-                .allowMainThreadQueries()
-                .fallbackToDestructiveMigration()
-                .build()
-
-            println(db)
-            val dao1 = db.userDao()
-            val data1: List<User> = dao1.getAll()
-            println(data1)
-            val dao2 = db.product2Dao()
-            val data2: List<Product2> = dao2.getAll()
-            println(data2)
+            getDatabase(applicationContext)
+            fillCaches()
         } catch (e: Exception) {
             println(e)
         }
@@ -90,8 +83,7 @@ class MainActivity : ComponentActivity() {
             0
         )
 
-        mainViewModel = ViewModelProvider(this)[MainViewModel::class.java]
-        p2pViewModel = ViewModelProvider(this)[P2PViewModel::class.java]
+
         p2pApi = P2PAPI.instance
 
         setContent {
@@ -106,34 +98,47 @@ class MainActivity : ComponentActivity() {
                         modifier = Modifier.padding(20.dp)
                     )
 
-                    Text(
+                    /*Text(
                         text = p2pViewModel!!.p2pState.value,
                         modifier = Modifier.padding(20.dp)
-                    )
+                    )*/
 
-                    if (p2pViewModel!!.p2pState.value == "offline") {
+                    Button(
+                        onClick = {
+                            if (p2pViewModel!!.p2pState.value == "offline") {
+                                P2PFgService.instance!!.connectPeer()
+                            }
+                            if (p2pViewModel!!.p2pState.value == "online") {
+                                P2PFgService.instance!!.disconnectPeer()
+                            }
+                        }) {
+                        Text(p2pViewModel!!.p2pState.value)
+                    }
+
+                    /*if (p2pViewModel!!.p2pState.value == "offline") {
                         Button(
                             onClick = {
                                 P2PFgService.instance!!.connectPeer()
                             }) {
                             Text("Connect")
                         }
-                    } else {
+                    }
+                    if (p2pViewModel!!.p2pState.value == "online") {
                         Button(
                             onClick = {
                                 P2PFgService.instance!!.disconnectPeer()
                             }) {
                             Text("Disconnect")
                         }
-                    }
+                    }*/
 
                     Button(
                         onClick = {
-                            if (p2pViewModel!!.p2pState.value === "online") {
+                            if (p2pViewModel!!.allProducts.size > 0) {
                                 startActivity(
                                     Intent(
                                         this@MainActivity,
-                                        Browser::class.java
+                                        BrowserActivity::class.java
                                     )
                                 )
                             }
@@ -148,25 +153,19 @@ class MainActivity : ComponentActivity() {
                         Text("Msg")
                     }
                     Text(mainViewModel.dateText)
-                    if (mainViewModel.logoImage != null) {
-                        Image(
-                            bitmap = mainViewModel.logoImage!!.asImageBitmap(),
-                            contentDescription = "img logo"
-                        )
-                    }
-
                 }
             }
         }
-        sharedPref = getSharedPreferences("appPrefs", MODE_PRIVATE)
-        val hasId = sharedPref!!.getString("deviceUUID", "")
+
+        val hasId = p2pPrefs!!.getString("deviceUUID", "")
+        shopLastUpdate = p2pPrefs!!.getString("shopLastUpdate", "1")!!.toLong()
         if (hasId!!.isNotEmpty()) {
             deviceUUID = hasId
         } else {
             val baseId = timeID()
             val androidId = Secure.getString(this.contentResolver, Secure.ANDROID_ID)
             deviceUUID = "${baseId}-${androidId}"
-            sharedPref!!.edit().putString("deviceUUID", deviceUUID).apply()
+            p2pPrefs!!.edit().putString("deviceUUID", deviceUUID).apply()
         }
         val p2pStateObserver = Observer<String> { stateStr ->
             //if (stateStr == "online") this.startActivity(Intent(this, BrowserActivity::class.java))

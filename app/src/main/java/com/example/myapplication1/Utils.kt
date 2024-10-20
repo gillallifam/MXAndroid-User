@@ -20,14 +20,15 @@ import java.util.concurrent.TimeoutException
 
 val gson = Gson()
 
-val formatter: NumberFormat = DecimalFormat("#,##")
 
 fun decodeBMP (encodedString: String): Bitmap {
-    val imageBytes = Base64.decode(encodedString, Base64.DEFAULT)
+    val clearStr = encodedString.replace("data:image/webp;base64,", "")
+        .replace("data:image/jpeg;base64,", "")
+        .replace("data:image/png;base64,", "")
+    val imageBytes = Base64.decode(clearStr, Base64.DEFAULT)
     return BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
 }
 
-@RequiresApi(Build.VERSION_CODES.O)
 fun timeID (): String {
     return Integer.toString(
         java.time.Instant.now().toEpochMilli().toInt(),

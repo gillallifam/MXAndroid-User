@@ -20,6 +20,8 @@ import org.webrtc.MediaConstraints
 import org.webrtc.PeerConnection
 import org.webrtc.SdpObserver
 import org.webrtc.SessionDescription
+import java.util.Timer
+import kotlin.concurrent.timerTask
 
 class P2PFgService : Service() {
 
@@ -36,6 +38,18 @@ class P2PFgService : Service() {
         startP2P(this)
         instance = this
         connectPeer()
+        if (peerAutoReconnect) {
+            Timer().schedule(
+                timerTask()
+                {
+                    if (p2pViewModel!!.p2pState.value != "online") {
+                        disconnectPeer()
+                        instance!!.connectPeer()
+                    }
+                }, 30 * 1000, 30 * 1000
+            )
+        }
+
     }
 
     override fun onDestroy() {
@@ -94,9 +108,6 @@ class P2PFgService : Service() {
 
     fun connectPeer() {
         if (localPeer == null) {
-            mainContext!!.runOnUiThread {
-                Toast.makeText(mainContext, "Connecting", Toast.LENGTH_SHORT).show()
-            }
             p2pViewModel!!.p2pState.value = "connecting"
 
             localPeer = peerConnectionFactory!!.createPeerConnection(iceServers, getPCObserver())

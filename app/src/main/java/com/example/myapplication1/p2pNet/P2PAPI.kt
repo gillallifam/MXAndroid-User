@@ -1,17 +1,24 @@
 package com.example.myapplication1.p2pNet
 
-import com.example.myapplication1.Cmd
-import com.example.myapplication1.Load
-import com.example.myapplication1.p2pNet.deviceUUID
-import com.example.myapplication1.p2pNet.sendData
+import com.example.myapplication1.types.Cmd
+import com.example.myapplication1.types.ImgLoad
 import java.util.concurrent.CompletableFuture
 
 class P2PAPI {
-    fun peerPing2(): CompletableFuture<String> {
+    fun peerPing2(retry: Int = 1): CompletableFuture<String> {
         return sendData(
             Cmd(
                 cmd = "ping2",
-                from = "$deviceUUID>tst@android.mktpix"
+                retry = retry,
+                from = "$deviceUUID>$deviceUUID@android.mktpix"
+            )
+        )
+    }
+    fun shopLastUpdate(): CompletableFuture<String> {
+        return sendData(
+            Cmd(
+                cmd = "shopLastUpdate2",
+                from = "$deviceUUID>$deviceUUID@android.mktpix"
             )
         )
     }
@@ -20,25 +27,26 @@ class P2PAPI {
             Cmd(
                 cmd = "reqProd2",
                 load = productId,
-                from = "$deviceUUID>tst@android.mktpix"
+                from = "$deviceUUID>$deviceUUID@android.mktpix"
             )
         )
     }
-    fun getImage(imageId: String): CompletableFuture<String> {
+    fun getImage(imageId: String, retry: Int = 3): CompletableFuture<String> {
         return sendData(
             Cmd(
                 cmd = "reqImg2",
-                from = "$deviceUUID>tst@android.mktpix",
-                load = Load(cod = imageId)
+                from = "$deviceUUID>$deviceUUID@android.mktpix",
+                retry = retry,
+                load = ImgLoad(cod = imageId)
             )
         )
     }
-    fun updateProducts(): CompletableFuture<String> {
+    fun updateProducts(age: Long = 0): CompletableFuture<String> {
         return sendData(
             Cmd(
                 cmd = "reqProducts2",
-                age = 0,
-                from = "$deviceUUID>tst@android.mktpix"
+                age = age,
+                from = "$deviceUUID>$deviceUUID@android.mktpix"
             )
         )
     }

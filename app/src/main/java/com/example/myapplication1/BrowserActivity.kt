@@ -1,6 +1,5 @@
 package com.example.myapplication1
 
-import android.annotation.SuppressLint
 import android.icu.text.NumberFormat
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -36,9 +35,8 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModelProvider
-import androidx.room.Room
-import com.example.myapplication1.p2pNet.imageHandler2
-import com.example.myapplication1.p2pNet.p2pApi
+import com.example.myapplication1.p2pNet.p2pViewModel
+import com.example.myapplication1.types.Product
 import com.example.myapplication1.ui.theme.MyApplication1Theme
 import java.util.Locale
 
@@ -71,16 +69,17 @@ class BrowserActivity : ComponentActivity() {
                 )
             ) {
                 Row(modifier = Modifier.padding(5.dp)) {
-                    Image(
-                        bitmap = browserViewModel!!.selectedProducts[index].img!!.asImageBitmap(),
-                        contentDescription = "image",
-                        modifier = Modifier
-                            .padding(8.dp)
-                            .size(60.dp)
-                            .clip(RoundedCornerShape(CornerSize(6.dp)))
-                            .align(alignment = Alignment.CenterVertically)
-                    )
-
+                    if (browserViewModel.selectedProducts[index].img != null) {
+                        Image(
+                            bitmap = browserViewModel.selectedProducts[index].img!!.asImageBitmap(),
+                            contentDescription = "image",
+                            modifier = Modifier
+                                .padding(8.dp)
+                                .size(60.dp)
+                                .clip(RoundedCornerShape(CornerSize(6.dp)))
+                                .align(alignment = Alignment.CenterVertically)
+                        )
+                    }
                     Column {
                         Text(text = prod.nameSho, modifier = Modifier.padding(5.dp, 5.dp))
                         Text(
@@ -102,47 +101,16 @@ class BrowserActivity : ComponentActivity() {
         }
     }
 
-    @SuppressLint("HardwareIds")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val dbB = Room.databaseBuilder(
-            applicationContext,
-            AppDatabase::class.java, "AppDatabase"
-        )
-        try {
-            val db = dbB.allowMainThreadQueries().build()
-        } catch (e: Exception) {
-            println(e)
-        }
 
-        //val productDao = db.productDao()
-        //var products=  listOf<Product>()
         browserViewModel = ViewModelProvider(this)[BrowserViewModel::class.java]
-        p2pApi!!.updateProducts().thenAccept { jsonString ->
-            try {
-                val products = gson.fromJson(jsonString, Array<Product>::class.java).asList()
-                for ((index, prod) in products.withIndex()) {
-                    p2pApi!!.getImage(prod.cod).thenAccept { imgData ->
-                        try {
-                            val prodIdx = products[index]
-                            prodIdx.img = imageHandler2(imgData)
-                            if (index == products.size - 1) {
-                                browserViewModel!!.allProducts.addAll(products)
-                                browserViewModel!!.selectedProducts.addAll(products.filter {
-                                    it.nameSho.startsWith(
-                                        browserViewModel!!.filter
-                                    )
-                                })
-                            }
-                        } catch (e: Exception) {
-                            println(e)
-                        }
-                    }
-                }
-            } catch (e: Exception) {
-                println(e)
-            }
-        }
+        browserViewModel.selectedProducts.addAll(p2pViewModel!!.allProducts)
+        /*browserViewModel.selectedProducts.addAll(p2pViewModel!!.allProducts.filter {
+            it.nameSho.startsWith(
+                browserViewModel.filter
+            )
+        })*/
 
         setContent {
             MyApplication1Theme {
@@ -158,9 +126,11 @@ class BrowserActivity : ComponentActivity() {
                     Button(
                         //enabled = viewModel!!.p2pState == "offline",
                         onClick = {
-                            if (browserViewModel!!.filter == "Pizza")
-                                browserViewModel!!.filter = "Batata"
-                            else browserViewModel!!.filter = "Pizza"
+                            if (browserViewModel.filter == "Pizza")
+                                browserViewModel.filter = "Batata"
+                            else browserViewModel.filter = "Pizza"
+
+
 
                             /*browserViewModel!!.allProducts.forEach{it.visible = false}
                             browserViewModel!!.allProducts.forEach{it.visible = it.nameSho.startsWith(
@@ -170,17 +140,16 @@ class BrowserActivity : ComponentActivity() {
                             browserViewModel!!.selectedProducts.addAll(browserViewModel!!.allProducts.filter {
                                 it.visible
                             })*/
-                            browserViewModel!!.selectedProducts.clear()
-                            browserViewModel!!.selectedProducts.addAll(browserViewModel!!.allProducts.filter {
-                                it.nameSho.startsWith(browserViewModel!!.filter)
+                            browserViewModel.selectedProducts.clear()
+                            browserViewModel.selectedProducts.addAll(p2pViewModel!!.allProducts.filter {
+                                it.nameSho.startsWith(browserViewModel.filter)
                             })
                         }) {
                         Text("Filter")
                     }
-                    RecyclerView(browserViewModel!!.selectedProducts)
+                    RecyclerView(browserViewModel.selectedProducts)
                 }
             }
         }
     }
 }
-

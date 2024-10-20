@@ -1,5 +1,6 @@
 package com.example.myapplication1
 
+import com.example.myapplication1.types.PackedOffer
 import com.google.gson.JsonObject
 import retrofit2.Response
 import retrofit2.http.Body
