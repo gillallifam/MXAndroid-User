@@ -4,13 +4,13 @@ import android.annotation.SuppressLint
 import android.app.ActivityManager
 import android.content.Context
 import android.content.Intent
+import android.media.MediaPlayer
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings.Secure
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.annotation.RequiresApi
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,30 +20,28 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import com.example.myapplication1.p2pNet.P2PAPI
-import com.example.myapplication1.p2pNet.P2PViewModel
 import com.example.myapplication1.p2pNet.P2PFgService
+import com.example.myapplication1.p2pNet.P2PViewModel
 import com.example.myapplication1.p2pNet.deviceUUID
 import com.example.myapplication1.p2pNet.fillCaches
 import com.example.myapplication1.p2pNet.mainContext
 import com.example.myapplication1.p2pNet.p2pApi
 import com.example.myapplication1.p2pNet.p2pPrefs
 import com.example.myapplication1.p2pNet.p2pViewModel
-import com.example.myapplication1.p2pNet.peerAutoReconnect
 import com.example.myapplication1.p2pNet.shopLastUpdate
 import com.example.myapplication1.ui.theme.MyApplication1Theme
-import java.util.Timer
-import kotlin.concurrent.timerTask
+
 
 class MainActivity : ComponentActivity() {
 
     private lateinit var mainViewModel: MainViewModel
+    private lateinit var mediaPlayer: MediaPlayer
 
     private fun isMyServiceRunning(serviceClass: Class<*>): Boolean {
         val manager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
@@ -58,6 +56,9 @@ class MainActivity : ComponentActivity() {
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     @SuppressLint("HardwareIds")
     override fun onCreate(savedInstanceState: Bundle?) {
+        mediaPlayer = MediaPlayer.create(
+            this,
+            R.raw.a1)
         super.onCreate(savedInstanceState)
         mainContext = this
         p2pPrefs = getSharedPreferences("p2pPrefs", MODE_PRIVATE)
@@ -71,10 +72,9 @@ class MainActivity : ComponentActivity() {
         }
 
         if (!isMyServiceRunning(P2PFgService::class.java)) {
-            P2PFgService.startService(this, "some string you want to pass into the service")
+            P2PFgService.startService(this)
         } else {
             P2PFgService.instance!!.connectPeer()
-            //p2pViewModel!!.p2pState.value = "online"
         }
 
         ActivityCompat.requestPermissions(
@@ -82,7 +82,6 @@ class MainActivity : ComponentActivity() {
             arrayOf(android.Manifest.permission.POST_NOTIFICATIONS),
             0
         )
-
 
         p2pApi = P2PAPI.instance
 
@@ -98,11 +97,6 @@ class MainActivity : ComponentActivity() {
                         modifier = Modifier.padding(20.dp)
                     )
 
-                    /*Text(
-                        text = p2pViewModel!!.p2pState.value,
-                        modifier = Modifier.padding(20.dp)
-                    )*/
-
                     Button(
                         onClick = {
                             if (p2pViewModel!!.p2pState.value == "offline") {
@@ -114,23 +108,6 @@ class MainActivity : ComponentActivity() {
                         }) {
                         Text(p2pViewModel!!.p2pState.value)
                     }
-
-                    /*if (p2pViewModel!!.p2pState.value == "offline") {
-                        Button(
-                            onClick = {
-                                P2PFgService.instance!!.connectPeer()
-                            }) {
-                            Text("Connect")
-                        }
-                    }
-                    if (p2pViewModel!!.p2pState.value == "online") {
-                        Button(
-                            onClick = {
-                                P2PFgService.instance!!.disconnectPeer()
-                            }) {
-                            Text("Disconnect")
-                        }
-                    }*/
 
                     Button(
                         onClick = {
@@ -148,6 +125,7 @@ class MainActivity : ComponentActivity() {
                     Button(onClick = {
                         p2pApi!!.peerPing2().thenApply { result ->
                             if (result.isNotEmpty()) mainViewModel.dateText = result
+                            mediaPlayer.start()
                         }
                     }) {
                         Text("Msg")

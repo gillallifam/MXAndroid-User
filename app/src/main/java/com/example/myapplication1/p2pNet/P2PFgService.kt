@@ -139,14 +139,12 @@ class P2PFgService : Service() {
     }
 
     companion object {
-        private const val ONGOING_NOTIFICATION_ID = 101
-        private const val CHANNEL_ID = "1001"
+        private const val ONGOING_NOTIFICATION_ID = 100123
+        private const val CHANNEL_ID = "100123"
         var instance: P2PFgService? = null
-        private const val EXTRA_DEMO = "EXTRA_DEMO"
 
-        fun startService(context: Context, demoString: String) {
+        fun startService(context: Context) {
             val intent = Intent(context, P2PFgService::class.java)
-            intent.putExtra(EXTRA_DEMO, demoString)
             context.startForegroundService(intent)
         }
 

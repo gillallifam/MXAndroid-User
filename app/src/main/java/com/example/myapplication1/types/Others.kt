@@ -49,3 +49,26 @@ data class ImgLoad(
     val cod: String? = null,
     val img: String? = null,
 )
+
+data class Category(
+    val name: String,
+    val transId: String?,
+    val selected: Boolean,
+    val fractionable: Boolean?,
+)
+
+//list -> {JsonArray@27849} "[{"name":"morango","transId":"prod-opt-lu4ltxc8-item-lu4lu9fs"},{"name":"menta","transId":"prod-opt-lu4ltxc8-item-lu4luiq0"}]"
+data class Optional(
+    val name: String,
+    val transId: String?,
+)
+
+//{"name":"pizza","transId":"prod-adt-lu4ls79r","sizes":"prod-size-lu4lqz3r","list":[{"name":"queijo","transId":"prod-adt-lu4ls79r-item-lu4lv0pk","list":[{"name":"pequena","transId":"prod-size-lu4lqz3r-item-lu4lr7lc","price":"6"},{"name":"media","transId":"prod-size-lu4lqz3r-item-lu4lrbkg","price":"9"},{"name":"grande","transId":"prod-size-lu4lqz3r-item-lu4lrf89","price":"12"}]}]}
+
+
+data class Additional(
+    val name: String,
+    val transId: String?,
+    val sizes: String?,
+
+)

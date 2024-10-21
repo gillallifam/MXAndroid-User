@@ -5,6 +5,7 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import android.widget.Toast
+import com.example.myapplication1.LZ4K.decompressFromUTF16
 import com.example.myapplication1.types.Cmd
 import com.example.myapplication1.types.CmdResp
 import com.example.myapplication1.types.CustomSDPClass
@@ -14,6 +15,7 @@ import com.example.myapplication1.types.OfferExtras
 import com.example.myapplication1.types.PackedOffer
 import com.example.myapplication1.genPid
 import com.example.myapplication1.gson
+import com.example.myapplication1.types.Category
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
@@ -46,6 +48,7 @@ const val peerAutoReconnect = true
 var p2pPrefs: SharedPreferences? = null
 var shopLastUpdate: Long = 0
 val filterOptions = arrayOf("*", "Batata", "Pizza")
+var targetShop = "LojaExemplo1"
 
 val promises: MutableMap<String, CompletableFuture<String>> = mutableMapOf()
 
@@ -285,7 +288,7 @@ fun getPCObserver(): PeerConnection.Observer {
             if (iceGatheringState.name == "COMPLETE") {
                 val extras = OfferExtras(
                     peerOwner = "$deviceUUID>$deviceUUID@android.mktpix",
-                    shop = "LojaExemplo1",
+                    shop = targetShop,
                     userid = deviceUUID,
                     deviceUUID = deviceUUID,
                     username = "android",
@@ -300,12 +303,35 @@ fun getPCObserver(): PeerConnection.Observer {
                 GlobalScope.launch(Dispatchers.IO + coroutineExceptionHandler) {
                     val packed = localOffer?.let { PackedOffer(offer = it) }
                     try {
+                        /*val respUrl =
+                            shopApi.findServer("https://api2.marketpix.com.br:9510/shopServer/MarketPix1")
+                        val url = "https://${respUrl.body()}/makeOffer"
+                        println(url)
+                        val result = shopApi.makeOffer2(url, packed)*/
                         val result = shopApi.makeOffer(packed)
                         if (result.isSuccessful) {
-                            val sdpJson = result.body()!!.getAsJsonObject("answer")
-                            if (sdpJson != null) {
+                            val optionsJson = result.body()!!.getAsJsonObject("OPTIONS")
+                            println(optionsJson)
+                            val compressed = optionsJson.get("compressed").asString
+                            println(compressed)
+                            val decompressed = decompressFromUTF16(compressed)
+                            println(decompressed)
+                            val cats = optionsJson.getAsJsonObject("shopCats")
+                            println(cats.keySet())
+                            val catMap = mutableMapOf<String, Category>().apply {
+                                cats.keySet().forEach {
+                                    put(
+                                        it,
+                                        gson.fromJson(cats[it].toString(), Category::class.java)
+                                    )
+                                }
+                            }
+                            println(catMap)
+
+                            val answerJson = result.body()!!.getAsJsonObject("answer")
+                            if (answerJson != null) {
                                 val customAnswer =
-                                    gson.fromJson(sdpJson, CustomSDPClass::class.java)
+                                    gson.fromJson(answerJson, CustomSDPClass::class.java)
                                 P2PFgService.instance!!.localPeer!!.setRemoteDescription(
                                     getRemoteSdpObserver(P2PFgService.instance!!.localPeer!!),
                                     SessionDescription(Type.ANSWER, customAnswer.sdp)
