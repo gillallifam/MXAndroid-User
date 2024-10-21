@@ -1,21 +1,16 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
-    //id("androidx.room")
     id("com.google.devtools.ksp")
     alias(libs.plugins.compose.compiler)
 }
 
 android {
-    namespace = "com.example.myapplication1"
+    namespace = "br.com.marketpix.mxuser"
     compileSdk = 34
 
-    /*ksp {
-        arg("room.schemaLocation", "$projectDir/schemas")
-    }*/
-
     defaultConfig {
-        applicationId = "com.example.myapplication1"
+        applicationId = "br.com.marketpix.mxuser"
         minSdk = 26
         targetSdk = 34
         versionCode = 1
