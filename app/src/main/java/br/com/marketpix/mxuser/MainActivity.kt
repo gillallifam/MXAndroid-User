@@ -36,7 +36,6 @@ import br.com.marketpix.mxuser.p2pNet.p2pPrefs
 import br.com.marketpix.mxuser.p2pNet.p2pViewModel
 import br.com.marketpix.mxuser.p2pNet.shopLastUpdate
 import br.com.marketpix.mxuser.ui.theme.MXUserTheme
-import br.com.marketpix.mxuser.R
 
 class MainActivity : ComponentActivity() {
 
@@ -56,10 +55,16 @@ class MainActivity : ComponentActivity() {
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     @SuppressLint("HardwareIds")
     override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
         mediaPlayer = MediaPlayer.create(
             this,
             R.raw.a1)
-        super.onCreate(savedInstanceState)
+        /*val googleIdOption: GetGoogleIdOption = GetGoogleIdOption.Builder()
+            .setFilterByAuthorizedAccounts(true)
+            .setServerClientId("361472114596-10etkcijb0lkps95kgjo5e5seks5eois.apps.googleusercontent.com")
+            .setAutoSelectEnabled(true)
+            //.setNonce(<nonce string to use when generating a Google ID token>)
+            .build()*/
         mainContext = this
         p2pPrefs = getSharedPreferences("p2pPrefs", MODE_PRIVATE)
         mainViewModel = ViewModelProvider(this)[MainViewModel::class.java]
