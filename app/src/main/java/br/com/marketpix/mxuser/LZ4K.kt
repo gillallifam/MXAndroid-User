@@ -15,7 +15,7 @@ object LZ4K {
     )
 
     private inline fun String.charLess256(yes: call, no: call) {
-        if (this[0].toInt() < 256) {
+        if (this[0].code < 256) {
             yes.invoke()
         } else {
             no.invoke()
@@ -23,75 +23,75 @@ object LZ4K {
     }
 
     private fun Int.power() = 1 shl this
-    private fun _compress(source: String, bitsPerChar: Int, getCharFromInt: (code: Int) -> Char): String {
-        var context_c: String
+    private fun pCompress(source: String, bitsPerChar: Int, getCharFromInt: (code: Int) -> Char): String {
+        var contextC: String
         var value: Int
-        var context_w = ""
-        var context_wc: String
-        val context_dictionary = mutableMapOf<String, Int>()
-        val context_dictionaryToCreate = mutableMapOf<String, Boolean>()
-        var context_enlargeIn = 2.0 // Compensate for the first entry which should not count
-        var context_dictSize = 3
-        val context_data = mutableListOf<Char>()
-        var context_numBits = 2
-        var context_data_val = 0
-        var context_data_position = 0
+        var contextW = ""
+        var contextWc: String
+        val contextDictionary = mutableMapOf<String, Int>()
+        val contextDictionarytocreate = mutableMapOf<String, Boolean>()
+        var contextEnlargein = 2.0 // Compensate for the first entry which should not count
+        var contextDictsize = 3
+        val contextData = mutableListOf<Char>()
+        var contextNumbits = 2
+        var contextDataVal = 0
+        var contextDataPosition = 0
         fun minusEnlargeIn() {
-            context_enlargeIn--
-            if (context_enlargeIn == 0.0) {
-                context_enlargeIn = 2.0.pow(context_numBits.toDouble())
-                context_numBits++
+            contextEnlargein--
+            if (contextEnlargein == 0.0) {
+                contextEnlargein = 2.0.pow(contextNumbits.toDouble())
+                contextNumbits++
             }
         }
 
         fun checkPostition() {
-            if (context_data_position == bitsPerChar - 1) {
-                context_data_position = 0
-                context_data.add(getCharFromInt(context_data_val))
-                context_data_val = 0
+            if (contextDataPosition == bitsPerChar - 1) {
+                contextDataPosition = 0
+                contextData.add(getCharFromInt(contextDataVal))
+                contextDataVal = 0
             } else {
-                context_data_position++
+                contextDataPosition++
             }
         }
 
         fun processContextWordInCreateDictionary() {
-            context_w.charLess256({
-                repeat(context_numBits) {
-                    context_data_val = context_data_val shl 1
+            contextW.charLess256({
+                repeat(contextNumbits) {
+                    contextDataVal = contextDataVal shl 1
                     checkPostition()
                 }
-                value = context_w[0].toInt()
+                value = contextW[0].code
                 repeat(8) {
-                    context_data_val = context_data_val shl 1 or (value and 1)
+                    contextDataVal = contextDataVal shl 1 or (value and 1)
                     checkPostition()
                     value = value shr 1
 
                 }
             }) {
                 value = 1
-                repeat(context_numBits) {
-                    context_data_val = context_data_val shl 1 or value
+                repeat(contextNumbits) {
+                    contextDataVal = contextDataVal shl 1 or value
                     checkPostition()
                     value = 0
                 }
-                value = context_w[0].toInt()
+                value = contextW[0].code
                 repeat(16) {
-                    context_data_val = context_data_val shl 1 or (value and 1)
+                    contextDataVal = contextDataVal shl 1 or (value and 1)
                     checkPostition()
                     value = value shr 1
                 }
             }
             minusEnlargeIn()
-            context_dictionaryToCreate.remove(context_w)
+            contextDictionarytocreate.remove(contextW)
         }
 
         fun processContextWord() {
-            if (context_dictionaryToCreate.containsKey(context_w)) {
+            if (contextDictionarytocreate.containsKey(contextW)) {
                 processContextWordInCreateDictionary()
             } else {
-                value = context_dictionary[context_w]!! //not be empty?
-                repeat(context_numBits) {
-                    context_data_val = context_data_val shl 1 or (value and 1)
+                value = contextDictionary[contextW]!! //not be empty?
+                repeat(contextNumbits) {
+                    contextDataVal = contextDataVal shl 1 or (value and 1)
                     checkPostition()
                     value = value shr 1
                 }
@@ -99,53 +99,53 @@ object LZ4K {
             minusEnlargeIn()
         }
         source.forEach {
-            context_c = it.toString()
+            contextC = it.toString()
             //char in dictionary
-            context_dictionary[context_c] ?: kotlin.run {
-                context_dictionary[context_c] = context_dictSize++
-                context_dictionaryToCreate[context_c] = true
+            contextDictionary[contextC] ?: kotlin.run {
+                contextDictionary[contextC] = contextDictsize++
+                contextDictionarytocreate[contextC] = true
             }
-            context_wc = context_w + context_c
-            if (context_dictionary.contains(context_wc)) {
-                context_w = context_wc
+            contextWc = contextW + contextC
+            if (contextDictionary.contains(contextWc)) {
+                contextW = contextWc
             } else {
                 processContextWord()
                 // Add wc to the dictionary.
-                context_dictionary[context_wc] = context_dictSize++
-                context_w = context_c
+                contextDictionary[contextWc] = contextDictsize++
+                contextW = contextC
             }
         }
         // Output the code for w.
-        if (context_w.isNotBlank()) {
+        if (contextW.isNotBlank()) {
             processContextWord()
         }
         // Mark the end of the stream
         value = 2
-        repeat(context_numBits) {
-            context_data_val = context_data_val shl 1 or (value and 1)
-            if (context_data_position == bitsPerChar - 1) {
-                context_data_position = 0
-                context_data.add(getCharFromInt(context_data_val))
-                context_data_val = 0
+        repeat(contextNumbits) {
+            contextDataVal = contextDataVal shl 1 or (value and 1)
+            if (contextDataPosition == bitsPerChar - 1) {
+                contextDataPosition = 0
+                contextData.add(getCharFromInt(contextDataVal))
+                contextDataVal = 0
             } else {
-                context_data_position++
+                contextDataPosition++
             }
             value = value shr 1
         }
         // Flush the last char
         while (true) {
-            context_data_val = context_data_val shl 1
-            if (context_data_position == bitsPerChar - 1) {
-                context_data.add(getCharFromInt(context_data_val))
+            contextDataVal = contextDataVal shl 1
+            if (contextDataPosition == bitsPerChar - 1) {
+                contextData.add(getCharFromInt(contextDataVal))
                 break
             } else
-                context_data_position++
+                contextDataPosition++
         }
-        return context_data.joinToString("")
+        return contextData.joinToString("")
     }
 
     private val Int.string get() = this.toChar().toString()
-    private fun _decompress(length: Int, resetValue: Int, getNextValue: (idx: Int) -> Char): String? {
+    private fun pDecompress(length: Int, resetValue: Int, getNextValue: (idx: Int) -> Char): String? {
         val builder = StringBuilder()
         val dictionary = mutableListOf(0.string, 1.string, 2.string)
         var bits = 0
@@ -159,13 +159,13 @@ object LZ4K {
         var numBits = 3
         var enlargeIn = 4
         var dictSize = 4
-        var next: Int = 0
+        var next: Int
         fun doPower(initBits: Int, initPower: Int, initMaxPowerFactor: Int, mode: Int = 0) {
             bits = initBits
             maxpower = initMaxPowerFactor.power()
             power = initPower
             while (power != maxpower) {
-                resb = data.value.toInt() and data.position
+                resb = data.value.code and data.position
                 data.position = data.position shr 1
                 if (data.position == 0) {
                     data.position = resetValue
@@ -230,25 +230,25 @@ object LZ4K {
     }
 
 
-    fun compress(source: String) = _compress(source, 16) { it.toChar() }
+    fun compress(source: String) = pCompress(source, 16) { it.toChar() }
     fun decompres(compressed: String) =
-        if (compressed.isBlank()) null else _decompress(compressed.length, 32768) {
+        if (compressed.isBlank()) null else pDecompress(compressed.length, 32768) {
             compressed[it]
         }
 
     fun decompressFromEncodedURIComponent(input: String) = when {
         input.isBlank() -> ""
-        else -> _decompress(input.length, 32) {
+        else -> pDecompress(input.length, 32) {
             keyStrUri.indexOf(input[it]).toChar()
         }
     }
 
-    fun compressToEncodedURIComponent(input: String) = _compress(input, 6) {
+    fun compressToEncodedURIComponent(input: String) = pCompress(input, 6) {
         keyStrUri[it]
     }
 
     fun compressToBase64(input: String): String {
-        val res = _compress(input, 6) { keyStr[it] }
+        val res = pCompress(input, 6) { keyStr[it] }
         return when (res.length % 4) { // To produce valid Base64
             0 -> res
             1 -> "$res==="
@@ -260,17 +260,17 @@ object LZ4K {
 
     fun decompressFromBase64(input: String) = when {
         input.isBlank() -> null
-        else -> _decompress(input.length, 32) {
+        else -> pDecompress(input.length, 32) {
             keyStr.indexOf(input[it]).toChar()
         }
     }
 
     fun decompressFromUTF16(input: String) = when {
         input.isBlank() -> null
-        else -> _decompress(input.length, 16384) {
-            (input[it].toInt() - 32).toChar()
+        else -> pDecompress(input.length, 16384) {
+            (input[it].code - 32).toChar()
         }
     }
 
-    fun compressToUTF16(input: String) = _compress(input, 15) { (it + 32).toChar() } + " "
+    fun compressToUTF16(input: String) = pCompress(input, 15) { (it + 32).toChar() } + " "
 }
