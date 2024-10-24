@@ -2,6 +2,7 @@ package br.com.marketpix.mxuser.p2pNet
 
 import br.com.marketpix.mxuser.types.Cmd
 import br.com.marketpix.mxuser.types.ImgLoad
+import kotlinx.coroutines.future.await
 import java.util.concurrent.CompletableFuture
 
 class P2PAPI {
@@ -41,14 +42,14 @@ class P2PAPI {
             )
         )
     }
-    fun updateProducts(age: Long = 0): CompletableFuture<String> {
+    suspend fun updateProducts(age: Long = 0): String? {
         return sendData(
             Cmd(
                 cmd = "reqProducts2",
                 age = age,
                 from = "$deviceUUID>$deviceUUID@android.mktpix"
             )
-        )
+        ).await()
     }
     companion object {
         val instance = P2PAPI()

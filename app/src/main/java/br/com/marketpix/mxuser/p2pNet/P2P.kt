@@ -6,6 +6,7 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import android.widget.Toast
+import androidx.lifecycle.viewModelScope
 import br.com.marketpix.mxuser.LZ4K.decompressFromUTF16
 import br.com.marketpix.mxuser.MainActivity
 import br.com.marketpix.mxuser.NetworkUtils.Companion.shopApi
@@ -49,8 +50,6 @@ var p2pApi: P2PAPI? = null
 const val peerAutoReconnect = true
 var p2pPrefs: SharedPreferences? = null
 var shopLastUpdate: Long = 0
-//var filterOptions = arrayOf("All").toList()
-//var filterCategories = listOf(Category(name = "All", transId = "", selected = false, fractionable = false)).toList()
 var targetShop = "LojaExemplo1"
 lateinit var mediaPlayer1: MediaPlayer
 lateinit var mediaPlayer2: MediaPlayer
@@ -154,7 +153,9 @@ fun getDataChannelObserver(dataChannel: DataChannel): DataChannel.Observer {
                 p2pApi!!.shopLastUpdate().thenAccept { updateTime ->
                     val updateNum = updateTime.toLong()
                     if (shopLastUpdate < updateNum) {
-                        updateCaches(shopLastUpdate, updateTime)
+                        p2pViewModel!!.viewModelScope.launch {
+                            updateCaches(shopLastUpdate, updateTime)
+                        }
                     }
                 }
             }

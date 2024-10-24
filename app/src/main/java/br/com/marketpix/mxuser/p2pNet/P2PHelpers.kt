@@ -57,22 +57,13 @@ fun updateFilter() {
             })
         }
     }
-    //println(p2pViewModel!!.selectedProducts)
-    /*if (p2pViewModel!!.filter == "All") {
-        p2pViewModel!!.selectedProducts.addAll(p2pViewModel!!.prodCache2.values)
-    } else {
-        p2pViewModel!!.selectedProducts.addAll(p2pViewModel!!.prodCache2.values.filter {
-            it.nameSho.startsWith(
-                p2pViewModel!!.filter
-            )
-        })
-    }*/
 }
 
-fun updateCaches(localTimestamp: Long, remoteTimestamp: String) {
-    p2pApi!!.updateProducts(localTimestamp).thenAccept { jsonString ->
+suspend fun updateCaches(localTimestamp: Long, remoteTimestamp: String) {
+    val resp = p2pApi!!.updateProducts(localTimestamp)
+    if (!resp.isNullOrEmpty()) {
         try {
-            val products = gson.fromJson(jsonString, Array<Product>::class.java).asList()
+            val products = gson.fromJson(resp, Array<Product>::class.java).asList()
             var successCount = 0
             for ((index, prod) in products.withIndex()) {
                 productDao!!.insertAll(prod)
@@ -99,5 +90,6 @@ fun updateCaches(localTimestamp: Long, remoteTimestamp: String) {
             println(e)
         }
     }
+
 }
 
