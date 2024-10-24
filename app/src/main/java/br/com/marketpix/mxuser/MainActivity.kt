@@ -25,12 +25,14 @@ import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
+import br.com.marketpix.mxuser.browser.BrowserActivity
 import br.com.marketpix.mxuser.p2pNet.P2PAPI
 import br.com.marketpix.mxuser.p2pNet.P2PFgService
 import br.com.marketpix.mxuser.p2pNet.P2PViewModel
 import br.com.marketpix.mxuser.p2pNet.deviceUUID
 import br.com.marketpix.mxuser.p2pNet.fillCaches
 import br.com.marketpix.mxuser.p2pNet.mainContext
+import br.com.marketpix.mxuser.p2pNet.mediaPlayer2
 import br.com.marketpix.mxuser.p2pNet.p2pApi
 import br.com.marketpix.mxuser.p2pNet.p2pPrefs
 import br.com.marketpix.mxuser.p2pNet.p2pViewModel
@@ -40,7 +42,6 @@ import br.com.marketpix.mxuser.ui.theme.MXUserTheme
 class MainActivity : ComponentActivity() {
 
     private lateinit var mainViewModel: MainViewModel
-    private lateinit var mediaPlayer: MediaPlayer
 
     private fun isMyServiceRunning(serviceClass: Class<*>): Boolean {
         val manager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
@@ -56,16 +57,35 @@ class MainActivity : ComponentActivity() {
     @SuppressLint("HardwareIds")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        mediaPlayer = MediaPlayer.create(
-            this,
-            R.raw.a1)
         /*val googleIdOption: GetGoogleIdOption = GetGoogleIdOption.Builder()
             .setFilterByAuthorizedAccounts(true)
             .setServerClientId("361472114596-10etkcijb0lkps95kgjo5e5seks5eois.apps.googleusercontent.com")
             .setAutoSelectEnabled(true)
             //.setNonce(<nonce string to use when generating a Google ID token>)
             .build()*/
+
+        /*val languageToLoad = "en" // your language
+        val locale: Locale = Locale(languageToLoad)
+        Locale.setDefault(locale)
+        val config: Configuration = Configuration()
+        config.locale = locale
+        baseContext.resources.updateConfiguration(
+            config,
+            baseContext.resources.displayMetrics
+        )
+        println("transTest")
+        println(getString(R.string.All))
+        println(
+            resources.getString(resources.getIdentifier("All", "string",
+            packageName
+        ))
+        )*/
+
         mainContext = this
+        mediaPlayer2 = MediaPlayer.create(
+            mainContext,
+            R.raw.a1
+        )
         p2pPrefs = getSharedPreferences("p2pPrefs", MODE_PRIVATE)
         mainViewModel = ViewModelProvider(this)[MainViewModel::class.java]
         p2pViewModel = ViewModelProvider(this)[P2PViewModel::class.java]
@@ -116,7 +136,7 @@ class MainActivity : ComponentActivity() {
 
                     Button(
                         onClick = {
-                            if (p2pViewModel!!.prodCache2.values.isNotEmpty()) {
+                            if (p2pViewModel!!.prodCache.values.isNotEmpty()) {
                                 startActivity(
                                     Intent(
                                         this@MainActivity,
@@ -130,7 +150,8 @@ class MainActivity : ComponentActivity() {
                     Button(onClick = {
                         p2pApi!!.peerPing2().thenApply { result ->
                             if (result.isNotEmpty()) mainViewModel.dateText = result
-                            mediaPlayer.start()
+                            mediaPlayer2.seekTo(0)
+                            if (!mediaPlayer2.isPlaying) mediaPlayer2.start()
                         }
                     }) {
                         Text("Msg")
@@ -164,7 +185,6 @@ class MainActivity : ComponentActivity() {
         }
     }*/
 }
-
 
 @Composable
 fun Greeting(name: String, modifier: Modifier = Modifier) {

@@ -53,7 +53,7 @@ data class ImgLoad(
 data class Category(
     val name: String,
     val transId: String?,
-    val selected: Boolean,
+    var selected: Boolean,
     val fractionable: Boolean?,
 )
 

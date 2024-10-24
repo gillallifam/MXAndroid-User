@@ -1,26 +1,23 @@
 package br.com.marketpix.mxuser.p2pNet
 
 import android.content.SharedPreferences
+import android.media.MediaPlayer
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import android.widget.Toast
 import br.com.marketpix.mxuser.LZ4K.decompressFromUTF16
+import br.com.marketpix.mxuser.MainActivity
+import br.com.marketpix.mxuser.NetworkUtils.Companion.shopApi
+import br.com.marketpix.mxuser.R
+import br.com.marketpix.mxuser.genPid
+import br.com.marketpix.mxuser.gson
+import br.com.marketpix.mxuser.types.Category
 import br.com.marketpix.mxuser.types.Cmd
 import br.com.marketpix.mxuser.types.CmdResp
 import br.com.marketpix.mxuser.types.CustomSDPClass
-import br.com.marketpix.mxuser.MainActivity
-import br.com.marketpix.mxuser.NetworkUtils.Companion.shopApi
 import br.com.marketpix.mxuser.types.OfferExtras
 import br.com.marketpix.mxuser.types.PackedOffer
-import br.com.marketpix.mxuser.genPid
-import br.com.marketpix.mxuser.gson
-import br.com.marketpix.mxuser.p2pNet.P2PAPI
-import br.com.marketpix.mxuser.p2pNet.P2PFgService
-import br.com.marketpix.mxuser.p2pNet.P2PViewModel
-import br.com.marketpix.mxuser.p2pNet.handleBroadcast
-import br.com.marketpix.mxuser.p2pNet.updateCaches
-import br.com.marketpix.mxuser.types.Category
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
@@ -52,8 +49,11 @@ var p2pApi: P2PAPI? = null
 const val peerAutoReconnect = true
 var p2pPrefs: SharedPreferences? = null
 var shopLastUpdate: Long = 0
-val filterOptions = arrayOf("*", "Batata", "Pizza")
+//var filterOptions = arrayOf("All").toList()
+//var filterCategories = listOf(Category(name = "All", transId = "", selected = false, fractionable = false)).toList()
 var targetShop = "LojaExemplo1"
+lateinit var mediaPlayer1: MediaPlayer
+lateinit var mediaPlayer2: MediaPlayer
 
 val promises: MutableMap<String, CompletableFuture<String>> = mutableMapOf()
 
@@ -280,6 +280,11 @@ fun getPCObserver(): PeerConnection.Observer {
                 P2PFgService.instance!!.localPeer = null
             }
             if (state == "COMPLETED") {
+                mediaPlayer1 = MediaPlayer.create(
+                    mainContext,
+                    R.raw.a2
+                )
+                mediaPlayer1.start()
                 p2pViewModel!!.p2pState.value = "online"
             }
         }
@@ -317,30 +322,41 @@ fun getPCObserver(): PeerConnection.Observer {
                         if (result.isSuccessful) {
                             val optionsJson = result.body()!!.getAsJsonObject("OPTIONS")
                             println(optionsJson)
-                            val compressed = optionsJson.get("compressed").asString
-                            println(compressed)
-                            val decompressed = decompressFromUTF16(compressed)
-                            println(decompressed)
-                            val cats = optionsJson.getAsJsonObject("shopCats")
-                            println(cats.keySet())
-                            val catMap = mutableMapOf<String, Category>().apply {
-                                cats.keySet().forEach {
-                                    put(
-                                        it,
-                                        gson.fromJson(cats[it].toString(), Category::class.java)
+                            if (optionsJson == null) {
+                                mainContext!!.runOnUiThread {
+                                    Toast.makeText(mainContext, "Loja offline", Toast.LENGTH_SHORT)
+                                        .show()
+                                }
+                            } else {
+                                val compressed = optionsJson.get("compressed").asString
+                                println(compressed)
+                                val decompressed = decompressFromUTF16(compressed)
+                                println(decompressed)
+                                val cats = optionsJson.getAsJsonObject("shopCats")
+                                println(cats.keySet())
+                                val catMap = mutableMapOf<String, Category>().apply {
+                                    cats.keySet().forEach {
+                                        put(
+                                            it,
+                                            gson.fromJson(cats[it], Category::class.java)
+                                        )
+                                    }
+                                }
+                                println(catMap)
+                                p2pViewModel!!.filterCategories.addAll(catMap.values)
+                                val catsArr = catMap.values.map { it.name }
+                                println(catsArr)
+                                //filterOptions = catsArr
+
+                                val answerJson = result.body()!!.getAsJsonObject("answer")
+                                if (answerJson != null) {
+                                    val customAnswer =
+                                        gson.fromJson(answerJson, CustomSDPClass::class.java)
+                                    P2PFgService.instance!!.localPeer!!.setRemoteDescription(
+                                        getRemoteSdpObserver(P2PFgService.instance!!.localPeer!!),
+                                        SessionDescription(Type.ANSWER, customAnswer.sdp)
                                     )
                                 }
-                            }
-                            println(catMap)
-
-                            val answerJson = result.body()!!.getAsJsonObject("answer")
-                            if (answerJson != null) {
-                                val customAnswer =
-                                    gson.fromJson(answerJson, CustomSDPClass::class.java)
-                                P2PFgService.instance!!.localPeer!!.setRemoteDescription(
-                                    getRemoteSdpObserver(P2PFgService.instance!!.localPeer!!),
-                                    SessionDescription(Type.ANSWER, customAnswer.sdp)
-                                )
                             }
                         }
                     } catch (e: Exception) {
