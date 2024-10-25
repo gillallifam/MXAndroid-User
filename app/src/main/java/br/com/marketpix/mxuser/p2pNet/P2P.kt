@@ -344,6 +344,7 @@ fun getPCObserver(): PeerConnection.Observer {
                                     }
                                 }
                                 println(catMap)
+                                p2pViewModel!!.filterCategories.clear()
                                 p2pViewModel!!.filterCategories.addAll(catMap.values)
                                 val catsArr = catMap.values.map { it.name }
                                 println(catsArr)

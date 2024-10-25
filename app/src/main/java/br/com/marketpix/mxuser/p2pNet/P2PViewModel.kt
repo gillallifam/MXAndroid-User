@@ -13,6 +13,7 @@ class P2PViewModel : ViewModel() {
     var dialogCatState = mutableStateOf(false)
     var dialogCartState = mutableStateOf(false)
     var dialogUserState = mutableStateOf(false)
+    var dialogPaymentState = mutableStateOf(false)
     var prodCache = mutableMapOf<String, Product>()
     var cartItems = mutableMapOf<String, Product>()
     var imgCache = mutableMapOf<String, Image>()

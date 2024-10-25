@@ -111,8 +111,11 @@ class BrowserActivity : ComponentActivity() {
                     Column {
                         Text(text = prod.nameSho, modifier = Modifier.padding(5.dp, 5.dp))
                         Text(
-                            text = NumberFormat.getCurrencyInstance(Locale("PT", "br"))
-                                .format(prod.price), modifier = Modifier.padding(5.dp, 5.dp)
+                            text = "${
+                                NumberFormat.getCurrencyInstance(Locale("PT", "br"))
+                                    .format(prod.price)
+                            } ${if (prod.qnt > 0) "x ${prod.qnt}" else ""}",
+                            modifier = Modifier.padding(5.dp, 5.dp)
                         )
                     }
                 }
@@ -148,7 +151,10 @@ class BrowserActivity : ComponentActivity() {
                     when {
                         p2pViewModel!!.dialogProdState.value -> {
                             DialogProducts(
-                                onDismissRequest = { p2pViewModel!!.dialogProdState.value = false },
+                                onDismissRequest = {
+                                    p2pViewModel!!.dialogProdState.value = false
+                                    updateFilter()
+                                },
                             )
                         }
 
@@ -167,6 +173,14 @@ class BrowserActivity : ComponentActivity() {
                         p2pViewModel!!.dialogUserState.value -> {
                             DialogUser(
                                 onDismissRequest = { p2pViewModel!!.dialogUserState.value = false },
+                            )
+                        }
+
+                        p2pViewModel!!.dialogPaymentState.value -> {
+                            DialogPayment(
+                                onDismissRequest = {
+                                    p2pViewModel!!.dialogPaymentState.value = false
+                                },
                             )
                         }
                     }
@@ -197,7 +211,7 @@ class BrowserActivity : ComponentActivity() {
                             Text(text = targetShop)
 
                             IconButton(modifier = Modifier.size(40.dp),
-                                onClick = { p2pViewModel!!.dialogUserState.value = true }){
+                                onClick = { p2pViewModel!!.dialogUserState.value = true }) {
                                 Icon(
                                     modifier = Modifier.size(36.dp),
                                     imageVector = Icons.Filled.Person,

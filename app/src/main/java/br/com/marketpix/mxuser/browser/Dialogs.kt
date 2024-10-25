@@ -74,7 +74,8 @@ fun DialogCats(onDismissRequest: () -> Unit) {
                         mainContext!!.packageName
                     )
                     Text(
-                        text = if (identif > 0) mainContext!!.resources.getString(identif).uppercase(Locale.ROOT)
+                        text = if (identif > 0) mainContext!!.resources.getString(identif)
+                            .uppercase(Locale.ROOT)
                         else category.name.uppercase(Locale.ROOT),
                         color = if (category.selected) Color.White else Color.Gray,
                         fontSize = 24.sp,
@@ -130,15 +131,32 @@ fun DialogProducts(onDismissRequest: () -> Unit) {
                 Row {
                     Button(
                         onClick = {
-                            println("btn 1")
+                            val hasProd =
+                                p2pViewModel!!.cartItems[p2pViewModel!!.selectedProd.cod]
+                            if (hasProd != null) {
+                                hasProd.qnt = hasProd.qnt.plus(1)
+                            } else {
+                                val cp = p2pViewModel!!.selectedProd.copy()
+                                cp.qnt = 1
+                                cp.img = p2pViewModel!!.selectedProd.img
+                                p2pViewModel!!.cartItems[p2pViewModel!!.selectedProd.cod] = cp
+                            }
+
                         }) {
-                        Text("btn 1")
+                        Text("+")
                     }
                     Button(
                         onClick = {
-                            println("btn 2")
+                            val hasProd =
+                                p2pViewModel!!.cartItems[p2pViewModel!!.selectedProd.cod]
+                            if (hasProd != null) {
+                                if (hasProd.qnt > 0) hasProd.qnt = hasProd.qnt.minus(1)
+                                else {
+                                    p2pViewModel!!.cartItems.remove(p2pViewModel!!.selectedProd.cod)
+                                }
+                            }
                         }) {
-                        Text("btn 2")
+                        Text("-")
                     }
                 }
 
@@ -214,6 +232,12 @@ fun DialogCart(onDismissRequest: () -> Unit) {
                         .wrapContentSize(Alignment.Center),
                     textAlign = TextAlign.Center,
                 )
+                Button(onClick = {
+                    p2pViewModel!!.dialogCartState.value = false
+                    p2pViewModel!!.dialogPaymentState.value = true
+                }) {
+                    Text(text = "Payment")
+                }
             }
         }
     }

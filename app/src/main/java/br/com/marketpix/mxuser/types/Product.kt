@@ -15,7 +15,7 @@ data class Product(
     @PrimaryKey val cod: String,
     val nameSho: String,
     val nameLon: String?,
-    val qnt: Int?,
+    var qnt: Int,
     val min: Int?,
     val cost: Double?,
     val price: Double?,

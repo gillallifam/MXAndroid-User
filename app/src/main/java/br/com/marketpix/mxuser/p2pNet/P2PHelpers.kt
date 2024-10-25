@@ -48,7 +48,7 @@ fun updateFilter() {
         }
 
         "Cart" -> {
-            p2pViewModel!!.selectedProducts.addAll(p2pViewModel!!.prodCache.values.take(4))
+            p2pViewModel!!.selectedProducts.addAll(p2pViewModel!!.cartItems.values)
         }
 
         else -> {
