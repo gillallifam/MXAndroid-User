@@ -25,8 +25,9 @@ import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewModelScope
 import br.com.marketpix.mxuser.browser.BrowserActivity
-import br.com.marketpix.mxuser.p2pNet.P2PAPI
+import br.com.marketpix.mxuser.p2pNet.P2PApi
 import br.com.marketpix.mxuser.p2pNet.P2PFgService
 import br.com.marketpix.mxuser.p2pNet.P2PViewModel
 import br.com.marketpix.mxuser.p2pNet.deviceUUID
@@ -38,6 +39,7 @@ import br.com.marketpix.mxuser.p2pNet.p2pPrefs
 import br.com.marketpix.mxuser.p2pNet.p2pViewModel
 import br.com.marketpix.mxuser.p2pNet.shopLastUpdate
 import br.com.marketpix.mxuser.ui.theme.MXUserTheme
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
@@ -108,7 +110,7 @@ class MainActivity : ComponentActivity() {
             0
         )
 
-        p2pApi = P2PAPI.instance
+        p2pApi = P2PApi.instance
 
         setContent {
             MXUserTheme {
@@ -148,13 +150,19 @@ class MainActivity : ComponentActivity() {
                         Text("Browse")
                     }
                     Button(onClick = {
-                        p2pApi!!.peerPing2().thenApply { result ->
-                            if (result.isNotEmpty()) mainViewModel.dateText = result
-                            mediaPlayer2.seekTo(0)
-                            if (!mediaPlayer2.isPlaying) mediaPlayer2.start()
+                        p2pViewModel!!.viewModelScope.launch {
+                            val iniTime = java.time.Instant.now().toEpochMilli().toInt()
+                            val resp = p2pApi!!.peerPing2()
+                            val endTime = java.time.Instant.now().toEpochMilli().toInt()
+                            val totTime = endTime - iniTime
+                            if (!resp.isNullOrEmpty()) {
+                                mainViewModel.dateText = "$resp - $totTime"
+                                mediaPlayer2.seekTo(0)
+                                if (!mediaPlayer2.isPlaying) mediaPlayer2.start()
+                            }
                         }
                     }) {
-                        Text("Msg")
+                        Text("Ping")
                     }
                     Text(mainViewModel.dateText)
                 }

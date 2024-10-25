@@ -5,15 +5,15 @@ import br.com.marketpix.mxuser.types.ImgLoad
 import kotlinx.coroutines.future.await
 import java.util.concurrent.CompletableFuture
 
-class P2PAPI {
-    fun peerPing2(retry: Int = 1): CompletableFuture<String> {
+class P2PApi {
+    suspend fun peerPing2(retry: Int = 1): String? {
         return sendData(
             Cmd(
                 cmd = "ping2",
                 retry = retry,
                 from = "$deviceUUID>$deviceUUID@android.mktpix"
             )
-        )
+        ).await()
     }
     fun shopLastUpdate(): CompletableFuture<String> {
         return sendData(
@@ -52,6 +52,6 @@ class P2PAPI {
         ).await()
     }
     companion object {
-        val instance = P2PAPI()
+        val instance = P2PApi()
     }
 }
