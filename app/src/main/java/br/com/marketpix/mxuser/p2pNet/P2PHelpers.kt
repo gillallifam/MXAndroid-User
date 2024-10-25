@@ -1,6 +1,7 @@
 package br.com.marketpix.mxuser.p2pNet
 
 import android.graphics.Bitmap
+import androidx.lifecycle.viewModelScope
 import br.com.marketpix.mxuser.types.ImageModel
 import br.com.marketpix.mxuser.decodeBMP
 import br.com.marketpix.mxuser.gson
@@ -8,6 +9,8 @@ import br.com.marketpix.mxuser.imageDao
 import br.com.marketpix.mxuser.productDao
 import br.com.marketpix.mxuser.types.Image
 import br.com.marketpix.mxuser.types.Product
+import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
 
 fun imageHandler(data: String): Bitmap? {
     if (data.isNotEmpty()) {
@@ -67,11 +70,12 @@ suspend fun updateCaches(localTimestamp: Long, remoteTimestamp: String) {
             var successCount = 0
             for ((index, prod) in products.withIndex()) {
                 productDao!!.insertAll(prod)
-                p2pApi!!.getImage(prod.cod).thenAccept { imgData ->
-                    if (imgData.isNotEmpty()) {
+                p2pViewModel!!.viewModelScope.launch {
+                    val imgStr  = p2pApi!!.getImage(prod.cod)
+                    if(!imgStr.isNullOrEmpty()){
                         try {
                             val prodIdx = products[index]
-                            prodIdx.img = imageHandler(imgData)
+                            prodIdx.img = imageHandler(imgStr)
                             successCount++
                             if (products.size - 1 == index) {
                                 fillCaches()
@@ -90,6 +94,5 @@ suspend fun updateCaches(localTimestamp: Long, remoteTimestamp: String) {
             println(e)
         }
     }
-
 }
 

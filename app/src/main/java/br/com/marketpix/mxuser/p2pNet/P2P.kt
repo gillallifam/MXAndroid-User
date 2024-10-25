@@ -150,11 +150,14 @@ fun getDataChannelObserver(dataChannel: DataChannel): DataChannel.Observer {
         override fun onStateChange() {
             val state = dataChannel.state()
             if (state.name == "OPEN") {
-                p2pApi!!.shopLastUpdate().thenAccept { updateTime ->
-                    val updateNum = updateTime.toLong()
-                    if (shopLastUpdate < updateNum) {
-                        p2pViewModel!!.viewModelScope.launch {
-                            updateCaches(shopLastUpdate, updateTime)
+                p2pViewModel!!.viewModelScope.launch {
+                    val updateTime = p2pApi!!.shopLastUpdate()
+                    if(!updateTime.isNullOrEmpty()){
+                        val updateNum = updateTime.toLong()
+                        if (shopLastUpdate < updateNum) {
+                            p2pViewModel!!.viewModelScope.launch {
+                                updateCaches(shopLastUpdate, updateTime)
+                            }
                         }
                     }
                 }

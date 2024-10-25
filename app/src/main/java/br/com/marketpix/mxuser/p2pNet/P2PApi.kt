@@ -15,13 +15,13 @@ class P2PApi {
             )
         ).await()
     }
-    fun shopLastUpdate(): CompletableFuture<String> {
+    suspend fun shopLastUpdate(): String? {
         return sendData(
             Cmd(
                 cmd = "shopLastUpdate2",
                 from = "$deviceUUID>$deviceUUID@android.mktpix"
             )
-        )
+        ).await()
     }
     fun getProduct(productId: String): CompletableFuture<String> {
         return sendData(
@@ -32,7 +32,7 @@ class P2PApi {
             )
         )
     }
-    fun getImage(imageId: String, retry: Int = 3): CompletableFuture<String> {
+    suspend fun getImage(imageId: String, retry: Int = 3): String? {
         return sendData(
             Cmd(
                 cmd = "reqImg2",
@@ -40,7 +40,7 @@ class P2PApi {
                 retry = retry,
                 load = ImgLoad(cod = imageId)
             )
-        )
+        ).await()
     }
     suspend fun updateProducts(age: Long = 0): String? {
         return sendData(
