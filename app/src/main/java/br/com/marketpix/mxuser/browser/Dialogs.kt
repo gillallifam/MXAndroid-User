@@ -1,5 +1,6 @@
 package br.com.marketpix.mxuser.browser
 
+import android.annotation.SuppressLint
 import android.icu.text.NumberFormat
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -50,6 +51,7 @@ private fun changeCategory(category: Category) {
     updateFilter()
 }
 
+@SuppressLint("DiscouragedApi")
 @Composable
 fun DialogCats(onDismissRequest: () -> Unit) {
     Dialog(
