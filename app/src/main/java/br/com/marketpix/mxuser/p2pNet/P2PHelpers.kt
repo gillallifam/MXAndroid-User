@@ -9,7 +9,6 @@ import br.com.marketpix.mxuser.imageDao
 import br.com.marketpix.mxuser.productDao
 import br.com.marketpix.mxuser.types.Image
 import br.com.marketpix.mxuser.types.Product
-import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 
 fun imageHandler(data: String): Bitmap? {
@@ -40,6 +39,7 @@ fun fillCaches() {
 }
 
 fun updateFilter() {
+    p2pViewModel!!.itemsInCart.intValue = p2pViewModel!!.cartItems.size
     p2pViewModel!!.selectedProducts.clear()
     when (p2pViewModel!!.filterCategory.value.name) {
         "All" -> {

@@ -325,19 +325,19 @@ fun getPCObserver(): PeerConnection.Observer {
                         val result = shopApi.makeOffer(packed)
                         if (result.isSuccessful) {
                             val optionsJson = result.body()!!.getAsJsonObject("OPTIONS")
-                            println(optionsJson)
+                            //println(optionsJson)
                             if (optionsJson == null) {
                                 mainContext!!.runOnUiThread {
                                     Toast.makeText(mainContext, "Loja offline", Toast.LENGTH_SHORT)
                                         .show()
                                 }
                             } else {
-                                val compressed = optionsJson.get("compressed").asString
-                                println(compressed)
-                                val decompressed = decompressFromUTF16(compressed)
-                                println(decompressed)
+                                //val compressed = optionsJson.get("compressed").asString
+                                //println(compressed)
+                                //val decompressed = decompressFromUTF16(compressed)
+                                //println(decompressed)
                                 val cats = optionsJson.getAsJsonObject("shopCats")
-                                println(cats.keySet())
+                                //println(cats.keySet())
                                 val catMap = mutableMapOf<String, Category>().apply {
                                     cats.keySet().forEach {
                                         put(
@@ -346,11 +346,11 @@ fun getPCObserver(): PeerConnection.Observer {
                                         )
                                     }
                                 }
-                                println(catMap)
+                                //println(catMap)
                                 p2pViewModel!!.filterCategories.clear()
                                 p2pViewModel!!.filterCategories.addAll(catMap.values)
-                                val catsArr = catMap.values.map { it.name }
-                                println(catsArr)
+                                //val catsArr = catMap.values.map { it.name }
+                                //println(catsArr)
                                 //filterOptions = catsArr
 
                                 val answerJson = result.body()!!.getAsJsonObject("answer")

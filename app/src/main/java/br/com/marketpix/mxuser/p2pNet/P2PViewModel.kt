@@ -1,5 +1,6 @@
 package br.com.marketpix.mxuser.p2pNet
 
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
@@ -16,6 +17,7 @@ class P2PViewModel : ViewModel() {
     var dialogPaymentState = mutableStateOf(false)
     var prodCache = mutableMapOf<String, Product>()
     var cartItems = mutableMapOf<String, Product>()
+    var itemsInCart = mutableIntStateOf(0)
     var imgCache = mutableMapOf<String, Image>()
     var filterCategory =
         mutableStateOf(Category(name = "All", transId = "", selected = false, fractionable = false))

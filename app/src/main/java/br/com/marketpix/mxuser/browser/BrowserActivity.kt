@@ -2,6 +2,7 @@ package br.com.marketpix.mxuser.browser
 
 import android.icu.text.NumberFormat
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.AnimatedVisibility
@@ -11,16 +12,13 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -28,34 +26,26 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.ShoppingBasket
-import androidx.compose.material3.BottomAppBar
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults.topAppBarColors
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import br.com.marketpix.mxuser.p2pNet.mainContext
 import br.com.marketpix.mxuser.p2pNet.p2pViewModel
 import br.com.marketpix.mxuser.p2pNet.targetShop
 import br.com.marketpix.mxuser.p2pNet.updateFilter
@@ -132,7 +122,6 @@ class BrowserActivity : ComponentActivity() {
         }
     }
 
-    @OptIn(ExperimentalFoundationApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         updateFilter()
@@ -141,11 +130,48 @@ class BrowserActivity : ComponentActivity() {
             MXUserTheme {
                 Scaffold(
                     floatingActionButton = {
-                        FloatingActionButton(onClick = {
+                        ExtendedFloatingActionButton(
+                            onClick = {
+                                p2pViewModel!!.dialogCartState.value = true
+                                if (p2pViewModel!!.cartItems.isNotEmpty()) {
+                                    p2pViewModel!!.dialogCartState.value = true
+                                } else {
+                                    Toast.makeText(
+                                        mainContext,
+                                        "No items in cart",
+                                        Toast.LENGTH_SHORT
+                                    )
+                                        .show()
+                                }
+                            },
+                            content = {
+                                BadgedBox(
+                                    badge = {
+                                        if (p2pViewModel!!.itemsInCart.intValue > 0) {
+                                            Badge {
+                                                Text(text = p2pViewModel!!.itemsInCart.intValue.toString())
+                                            }
+                                        }
+                                    }
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Filled.ShoppingBasket,
+                                        contentDescription = "ShoppingBasket"
+                                    )
+                                }
+                            },
+                        )
+                        /*FloatingActionButton(onClick = {
                             p2pViewModel!!.dialogCartState.value = true
+                            *//*if (p2pViewModel!!.cartItems.isNotEmpty()) {
+                                p2pViewModel!!.dialogCartState.value = true
+                            } else {
+                                Toast.makeText(mainContext, "No items in cart", Toast.LENGTH_SHORT)
+                                    .show()
+                            }*//*
                         }) {
                             Icon(Icons.Default.ShoppingBasket, contentDescription = "Cart")
-                        }
+                        }*/
                     }
                 ) { innerPadding ->
                     when {
@@ -165,7 +191,7 @@ class BrowserActivity : ComponentActivity() {
                         }
 
                         p2pViewModel!!.dialogCartState.value -> {
-                            DialogCart(
+                            DialogCart2(
                                 onDismissRequest = { p2pViewModel!!.dialogCartState.value = false },
                             )
                         }
