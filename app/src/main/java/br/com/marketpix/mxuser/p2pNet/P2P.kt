@@ -7,7 +7,6 @@ import android.os.Looper
 import android.util.Log
 import android.widget.Toast
 import androidx.lifecycle.viewModelScope
-import br.com.marketpix.mxuser.LZ4K.decompressFromUTF16
 import br.com.marketpix.mxuser.MainActivity
 import br.com.marketpix.mxuser.NetworkUtils.Companion.shopApi
 import br.com.marketpix.mxuser.R
