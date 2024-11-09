@@ -9,19 +9,11 @@ import android.content.Context
 import android.content.Intent
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
-import br.com.marketpix.mxuser.p2pNet.dataChannel
-import br.com.marketpix.mxuser.p2pNet.getDataChannelObserver
-import br.com.marketpix.mxuser.p2pNet.getLocalSdpObserver
-import br.com.marketpix.mxuser.p2pNet.getPCObserver
-import br.com.marketpix.mxuser.p2pNet.iceServers
-import br.com.marketpix.mxuser.p2pNet.p2pViewModel
-import br.com.marketpix.mxuser.p2pNet.peerAutoReconnect
-import br.com.marketpix.mxuser.p2pNet.peerConnectionFactory
-import br.com.marketpix.mxuser.p2pNet.startP2P
 import br.com.marketpix.mxuser.MainActivity
 import br.com.marketpix.mxuser.R
 import br.com.marketpix.mxuser.timeID
 import org.webrtc.DataChannel
+import org.webrtc.Logging
 import org.webrtc.MediaConstraints
 import org.webrtc.PeerConnection
 import org.webrtc.SdpObserver
@@ -105,7 +97,17 @@ class P2PFgService : Service() {
         if (localPeer == null) {
             p2pViewModel!!.p2pState.value = "connecting"
 
+            val rtcConfig = PeerConnection.RTCConfiguration(
+                arrayListOf(
+                    // adding google's standard server
+                    PeerConnection.IceServer.builder("stun:stun.l.google.com:19302").createIceServer()
+                )
+            ).apply {
+                // it's very important to use new unified sdp semantics PLAN_B is deprecated
+                sdpSemantics = PeerConnection.SdpSemantics.UNIFIED_PLAN
+            }
             localPeer = peerConnectionFactory!!.createPeerConnection(iceServers, getPCObserver())
+
             dataChannel = localPeer!!.createDataChannel(
                 "dataChannel-${timeID()}", DataChannel.Init()
             )

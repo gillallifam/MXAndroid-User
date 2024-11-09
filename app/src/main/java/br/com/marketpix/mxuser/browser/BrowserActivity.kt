@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -26,6 +27,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.ShoppingBasket
@@ -42,6 +44,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
@@ -88,15 +91,35 @@ class BrowserActivity : ComponentActivity() {
                         p2pViewModel!!.dialogProdState.value = true
                     }) {
                     if (p2pViewModel!!.selectedProducts[index].img != null) {
-                        Image(
-                            bitmap = p2pViewModel!!.selectedProducts[index].img!!.asImageBitmap(),
-                            contentDescription = "image",
-                            modifier = Modifier
-                                .padding(8.dp)
-                                .size(60.dp)
-                                .clip(RoundedCornerShape(CornerSize(6.dp)))
-                                .align(alignment = Alignment.CenterVertically)
-                        )
+                        BadgedBox(
+                            badge = {
+                                val cartItem = p2pViewModel!!.cartItems[prod.cod]
+                                if (cartItem != null) {
+                                    Badge(
+                                        Modifier
+                                            .offset(y = 90.dp, x = (-16).dp)
+                                            .size(24.dp),
+                                        containerColor = Color.Red,
+                                        contentColor = Color.White,
+                                    ) { Text(cartItem.qnt.toString()) }
+                                } else {
+                                    Badge(
+                                        Modifier.size(0.dp),
+                                    )
+                                }
+
+                            }
+                        ) {
+                            Image(
+                                bitmap = p2pViewModel!!.selectedProducts[index].img!!.asImageBitmap(),
+                                contentDescription = "image",
+                                modifier = Modifier
+                                    .padding(8.dp)
+                                    .size(96.dp)
+                                    .clip(RoundedCornerShape(CornerSize(6.dp)))
+                            )
+                        }
+
                     }
                     Column {
                         Text(text = prod.nameSho, modifier = Modifier.padding(5.dp, 5.dp))
@@ -107,6 +130,32 @@ class BrowserActivity : ComponentActivity() {
                             } ${if (prod.qnt > 0) "x ${prod.qnt}" else ""}",
                             modifier = Modifier.padding(5.dp, 5.dp)
                         )
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(end = 8.dp),
+                            horizontalArrangement = Arrangement.End
+                        ) {
+                            IconButton(modifier = Modifier.size(40.dp),
+                                onClick = {
+                                    val hasProd = p2pViewModel!!.cartItems[prod.cod]
+                                    if (hasProd != null) {
+                                        hasProd.qnt = hasProd.qnt.plus(1)
+                                    } else {
+                                        val cp = prod.copy()
+                                        cp.qnt = 1
+                                        cp.img = prod.img
+                                        p2pViewModel!!.cartItems[prod.cod] = cp
+                                    }
+                                    updateFilter()
+                                }) {
+                                Icon(
+                                    modifier = Modifier.size(36.dp),
+                                    imageVector = Icons.Filled.Add,
+                                    contentDescription = "Menu"
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -115,17 +164,17 @@ class BrowserActivity : ComponentActivity() {
 
     @Composable
     fun RecyclerView(products: List<Product>) {
-        LazyColumn {
+        LazyColumn(Modifier.padding(bottom = 50.dp)) {
             itemsIndexed(items = products) { index, prod ->
                 ProdCard(index, prod)
             }
         }
+
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         updateFilter()
-
         setContent {
             MXUserTheme {
                 Scaffold(
@@ -161,17 +210,6 @@ class BrowserActivity : ComponentActivity() {
                                 }
                             },
                         )
-                        /*FloatingActionButton(onClick = {
-                            p2pViewModel!!.dialogCartState.value = true
-                            *//*if (p2pViewModel!!.cartItems.isNotEmpty()) {
-                                p2pViewModel!!.dialogCartState.value = true
-                            } else {
-                                Toast.makeText(mainContext, "No items in cart", Toast.LENGTH_SHORT)
-                                    .show()
-                            }*//*
-                        }) {
-                            Icon(Icons.Default.ShoppingBasket, contentDescription = "Cart")
-                        }*/
                     }
                 ) { innerPadding ->
                     when {
@@ -252,5 +290,4 @@ class BrowserActivity : ComponentActivity() {
             }
         }
     }
-
 }

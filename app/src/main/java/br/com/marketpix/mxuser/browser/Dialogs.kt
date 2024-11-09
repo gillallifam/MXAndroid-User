@@ -100,6 +100,7 @@ fun DialogCats(onDismissRequest: () -> Unit) {
 
 @Composable
 fun DialogProducts(onDismissRequest: () -> Unit) {
+
     Dialog(
         onDismissRequest = { onDismissRequest() },
         properties = DialogProperties(
@@ -117,6 +118,7 @@ fun DialogProducts(onDismissRequest: () -> Unit) {
         ) {
             Column(
                 modifier = Modifier
+                    .padding(8.dp)
                     .fillMaxWidth()
                     .fillMaxHeight(),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -131,13 +133,7 @@ fun DialogProducts(onDismissRequest: () -> Unit) {
                         .clip(RoundedCornerShape(CornerSize(6.dp)))
                         .align(alignment = Alignment.CenterHorizontally)
                 )
-                Text(
-                    text = p2pViewModel!!.selectedProd.nameSho,
-                    modifier = Modifier
-                        .wrapContentSize(Alignment.Center),
-                    textAlign = TextAlign.Center,
-                )
-                Row {
+                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     Button(
                         onClick = {
                             val hasProd =
@@ -151,6 +147,9 @@ fun DialogProducts(onDismissRequest: () -> Unit) {
                                 p2pViewModel!!.cartItems[p2pViewModel!!.selectedProd.cod] = cp
                             }
 
+                            val cItems = p2pViewModel!!.cartItems.toMutableMap()
+                            p2pViewModel!!.cartItems = cItems
+                            p2pViewModel!!.renderAge.intValue += 1
                         }) {
                         Text("+")
                     }
@@ -163,11 +162,53 @@ fun DialogProducts(onDismissRequest: () -> Unit) {
                                     p2pViewModel!!.cartItems.remove(p2pViewModel!!.selectedProd.cod)
                                 }
                             }
+                            p2pViewModel!!.renderAge.intValue += 1
                         }) {
                         Text("-")
                     }
                 }
+                Text(
+                    text = p2pViewModel!!.selectedProd.nameSho,
+                    modifier = Modifier
+                        .wrapContentSize(Alignment.Center),
+                    textAlign = TextAlign.Center,
+                )
 
+                if (p2pViewModel!!.renderAge.intValue > 0) {
+                    val cartItem = p2pViewModel!!.cartItems[p2pViewModel!!.selectedProd.cod]
+
+                    Text(
+                        modifier = Modifier
+                            .background(Color.Transparent)
+                            .height(0.dp), text = p2pViewModel!!.renderAge.intValue.toString(), color = Color.Transparent
+                    )
+                    if (cartItem != null) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+
+                            Text(
+                                text = "${cartItem.qnt} x ${
+                                    NumberFormat.getCurrencyInstance(Locale("PT", "br"))
+                                        .format(cartItem.price)
+                                }"
+                            )
+                            Text(
+                                text = "Total: ${
+                                    NumberFormat.getCurrencyInstance(Locale("PT", "br"))
+                                        .format(cartItem.price?.times(cartItem.qnt) ?: 0)
+                                }"
+                            )
+                        }
+                        HorizontalDivider(
+                            modifier = Modifier
+                                .height(1.dp)
+                                .fillMaxWidth(),
+                            color = Color.White
+                        )
+                    }
+                }
             }
         }
     }
@@ -312,6 +353,12 @@ fun DialogCart2(onDismissRequest: () -> Unit) {
                     }) {
                         Text(text = "Realizar pedido")
                     }
+                    Button(onClick = {
+                        p2pViewModel!!.dialogPaymentState.value = true
+                        p2pViewModel!!.dialogCartState.value = false
+                    }) {
+                        Text(text = "Limpar cesta")
+                    }
                 }
             }
         }
@@ -348,6 +395,58 @@ fun DialogPayment(onDismissRequest: () -> Unit) {
                         .wrapContentSize(Alignment.Center),
                     textAlign = TextAlign.Center,
                 )
+            }
+        }
+    }
+}
+
+@Composable
+fun DialogTmp(onDismissRequest: () -> Unit) {
+    Dialog(
+        onDismissRequest = { onDismissRequest() },
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            dismissOnClickOutside = false,
+            dismissOnBackPress = true,
+        ),
+    ) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .fillMaxHeight()
+                .padding(16.dp),
+            shape = RoundedCornerShape(16.dp),
+        ) {
+            Column(
+                modifier = Modifier
+                    .padding(24.dp)
+                    .fillMaxWidth()
+                    .fillMaxHeight(),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(text = p2pViewModel!!.p2pState.value)
+                Text(text = p2pViewModel!!.cartItems["98740001"]?.qnt.toString())
+                //Text(text = p2pViewModel!!.renderAge.intValue.toString())
+                Button(onClick = {
+                    val hasProd =
+                        p2pViewModel!!.cartItems["98740001"]
+                    if (hasProd == null) {
+                        val cp = p2pViewModel!!.prodCache["98740001"]!!.copy()
+                        cp.qnt = 1
+                        p2pViewModel!!.cartItems["98740001"] = cp
+                    } else {
+                        val pdt = p2pViewModel!!.cartItems["98740001"]!!.copy()
+                        pdt.qnt += 1
+                        p2pViewModel!!.cartItems["98740001"] = pdt
+                    }
+
+                    val mapCopy = p2pViewModel!!.cartItems.toMap().toMutableMap()
+                    p2pViewModel!!.cartItems = mapCopy
+                    //p2pViewModel!!.renderAge.intValue += 1
+                }) {
+                    Text(text = "tst1")
+                }
             }
         }
     }

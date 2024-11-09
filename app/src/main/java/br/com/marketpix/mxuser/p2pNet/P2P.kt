@@ -27,6 +27,7 @@ import org.json.JSONException
 import org.json.JSONObject
 import org.webrtc.DataChannel
 import org.webrtc.IceCandidate
+import org.webrtc.Logging
 import org.webrtc.MediaStream
 import org.webrtc.PeerConnection
 import org.webrtc.PeerConnection.IceServer
@@ -65,9 +66,9 @@ fun startP2P(context: P2PFgService) {
     )
     val options = PeerConnectionFactory.Options()
     options.disableNetworkMonitor = true
+    Logging.enableLogToDebugOutput(Logging.Severity.LS_VERBOSE)
     peerConnectionFactory =
         PeerConnectionFactory.builder().setOptions(options).createPeerConnectionFactory()
-
     /*,
     "stun:stun01.sipphone.com",
     "stun:stun.ideasip.com",
@@ -81,9 +82,11 @@ fun startP2P(context: P2PFgService) {
     "stun:stun.cbsys.net:3478",
      */
     val svAddress = arrayOf(
-        "stun:stun01.sipphone.com",
-        "stun:stun.ideasip.com",
-        "stun:stun.iptel.org",
+        "stun:stun.l.google.com:19302",
+        //"stun:global.stun.twilio.com:3478",
+        //"stun:stun.iptel.org",
+        //"stun:stun.ideasip.com",
+        //"stun:stun01.sipphone.com",
     )
     svAddress.forEach {
         val peerIceServer1 = IceServer.builder(it)
@@ -269,7 +272,7 @@ fun getPCObserver(): PeerConnection.Observer {
             //val localPeer = P2PFgService.instance!!.localPeer
             if (state == "DISCONNECTED") {
                 val state1 = P2PFgService.instance!!.localPeer!!.connectionState().name
-                println(state1)
+                //println(state1)
                 println("Peer disconnected.")
                 p2pViewModel!!.p2pState.value = "offline"
                 P2PFgService.instance!!.localPeer!!.dispose()
@@ -277,7 +280,7 @@ fun getPCObserver(): PeerConnection.Observer {
             }
             if (state == "FAILED") {
                 val state2 = P2PFgService.instance!!.localPeer!!.connectionState().name
-                println(state2)
+                //println(state2)
                 println("Peer failed.")
                 p2pViewModel!!.p2pState.value = "offline"
                 P2PFgService.instance!!.localPeer = null
@@ -377,12 +380,17 @@ fun getPCObserver(): PeerConnection.Observer {
 
         override fun onIceCandidate(iceCandidate: IceCandidate) {
             try {
-                val payload = JSONObject()
-                payload.put("sdpMLineIndex", iceCandidate.sdpMLineIndex)
+                /*val payload = JSONObject()
                 payload.put("sdpMid", iceCandidate.sdpMid)
+                payload.put("sdpMLineIndex", iceCandidate.sdpMLineIndex)
                 payload.put("candidate", iceCandidate.sdp)
-                val candidateObject = JSONObject()
-                candidateObject.put("ice", iceCandidate.toString())
+                val candidateObject = JSONObject()*/
+                //println(iceCandidate)
+                //lp.addIceCandidate(iceCandidate.sdpMid,iceCandidate.sdpMLineIndex,iceCandidate.sdp )
+                P2PFgService.instance!!.localPeer?.addIceCandidate(iceCandidate)
+                //println(P2PFgService.instance!!.localPeer)
+                //candidateObject.put("ice", iceCandidate.toString())
+
             } catch (e: JSONException) {
                 e.printStackTrace()
             }

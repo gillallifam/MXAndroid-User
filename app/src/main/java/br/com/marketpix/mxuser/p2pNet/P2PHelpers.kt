@@ -39,24 +39,26 @@ fun fillCaches() {
 }
 
 fun updateFilter() {
-    p2pViewModel!!.itemsInCart.intValue = p2pViewModel!!.cartItems.size
-    p2pViewModel!!.selectedProducts.clear()
-    when (p2pViewModel!!.filterCategory.value.name) {
+    val vm = p2pViewModel!!
+    vm.selectedProducts.clear()
+
+    when (vm.filterCategory.value.name) {
         "All" -> {
-            p2pViewModel!!.selectedProducts.addAll(p2pViewModel!!.prodCache.values)
+            vm.selectedProducts.addAll(vm.prodCache.values)
         }
 
         "Favorites" -> {
-            p2pViewModel!!.selectedProducts.addAll(p2pViewModel!!.prodCache.values.take(10))
+            vm.selectedProducts.addAll(vm.prodCache.values.take(10))
         }
 
         "Cart" -> {
-            p2pViewModel!!.selectedProducts.addAll(p2pViewModel!!.cartItems.values)
+            vm.itemsInCart.intValue = vm.cartItems.size
+            vm.selectedProducts.addAll(vm.cartItems.values)
         }
 
         else -> {
-            p2pViewModel!!.selectedProducts.addAll(p2pViewModel!!.prodCache.values.filter {
-                it.categories.contains(p2pViewModel!!.filterCategory.value.transId)
+            vm.selectedProducts.addAll(vm.prodCache.values.filter {
+                it.categories.contains(vm.filterCategory.value.transId)
             })
         }
     }

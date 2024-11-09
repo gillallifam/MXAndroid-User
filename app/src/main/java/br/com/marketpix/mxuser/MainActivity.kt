@@ -27,6 +27,8 @@ import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import br.com.marketpix.mxuser.browser.BrowserActivity
+import br.com.marketpix.mxuser.browser.DialogProducts
+import br.com.marketpix.mxuser.browser.DialogTmp
 import br.com.marketpix.mxuser.p2pNet.P2PApi
 import br.com.marketpix.mxuser.p2pNet.P2PFgService
 import br.com.marketpix.mxuser.p2pNet.P2PViewModel
@@ -38,6 +40,7 @@ import br.com.marketpix.mxuser.p2pNet.p2pApi
 import br.com.marketpix.mxuser.p2pNet.p2pPrefs
 import br.com.marketpix.mxuser.p2pNet.p2pViewModel
 import br.com.marketpix.mxuser.p2pNet.shopLastUpdate
+import br.com.marketpix.mxuser.p2pNet.updateFilter
 import br.com.marketpix.mxuser.ui.theme.MXUserTheme
 import kotlinx.coroutines.launch
 
@@ -106,7 +109,7 @@ class MainActivity : ComponentActivity() {
 
         ActivityCompat.requestPermissions(
             this@MainActivity,
-            arrayOf(android.Manifest.permission.POST_NOTIFICATIONS),
+            arrayOf(android.Manifest.permission.POST_NOTIFICATIONS, android.Manifest.permission.CAMERA, android.Manifest.permission.RECORD_AUDIO),
             0
         )
 
@@ -114,6 +117,15 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             MXUserTheme {
+                when {
+                    p2pViewModel!!.dialogTmpState.value -> {
+                        DialogTmp(
+                            onDismissRequest = {
+                                p2pViewModel!!.dialogTmpState.value = false
+                            },
+                        )
+                    }
+                }
                 Column(
                     modifier = Modifier.fillMaxSize(),
                     verticalArrangement = Arrangement.Top,
