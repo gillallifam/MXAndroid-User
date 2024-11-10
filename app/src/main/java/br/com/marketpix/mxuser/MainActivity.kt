@@ -27,11 +27,11 @@ import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import br.com.marketpix.mxuser.browser.BrowserActivity
-import br.com.marketpix.mxuser.browser.DialogProducts
 import br.com.marketpix.mxuser.browser.DialogTmp
 import br.com.marketpix.mxuser.p2pNet.P2PApi
 import br.com.marketpix.mxuser.p2pNet.P2PFgService
 import br.com.marketpix.mxuser.p2pNet.P2PViewModel
+import br.com.marketpix.mxuser.p2pNet.connectPeer
 import br.com.marketpix.mxuser.p2pNet.deviceUUID
 import br.com.marketpix.mxuser.p2pNet.fillCaches
 import br.com.marketpix.mxuser.p2pNet.mainContext
@@ -40,7 +40,7 @@ import br.com.marketpix.mxuser.p2pNet.p2pApi
 import br.com.marketpix.mxuser.p2pNet.p2pPrefs
 import br.com.marketpix.mxuser.p2pNet.p2pViewModel
 import br.com.marketpix.mxuser.p2pNet.shopLastUpdate
-import br.com.marketpix.mxuser.p2pNet.updateFilter
+import br.com.marketpix.mxuser.p2pNet.startP2P
 import br.com.marketpix.mxuser.ui.theme.MXUserTheme
 import kotlinx.coroutines.launch
 
@@ -62,6 +62,7 @@ class MainActivity : ComponentActivity() {
     @SuppressLint("HardwareIds")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        startP2P(this)
         /*val googleIdOption: GetGoogleIdOption = GetGoogleIdOption.Builder()
             .setFilterByAuthorizedAccounts(true)
             .setServerClientId("361472114596-10etkcijb0lkps95kgjo5e5seks5eois.apps.googleusercontent.com")
@@ -104,7 +105,7 @@ class MainActivity : ComponentActivity() {
         if (!isMyServiceRunning(P2PFgService::class.java)) {
             P2PFgService.startService(this)
         } else {
-            P2PFgService.instance!!.connectPeer()
+            connectPeer()
         }
 
         ActivityCompat.requestPermissions(
@@ -139,7 +140,7 @@ class MainActivity : ComponentActivity() {
                     Button(
                         onClick = {
                             if (p2pViewModel!!.p2pState.value == "offline") {
-                                P2PFgService.instance!!.connectPeer()
+                                connectPeer()
                             }
                             if (p2pViewModel!!.p2pState.value == "online") {
                                 P2PFgService.instance!!.disconnectPeer()
@@ -195,6 +196,8 @@ class MainActivity : ComponentActivity() {
             //if (stateStr == "online") this.startActivity(Intent(this, BrowserActivity::class.java))
         }
         mainViewModel.p2pState.observe(this, p2pStateObserver)
+
+        connectPeer()
     }
 
     /*override fun onDestroy() {

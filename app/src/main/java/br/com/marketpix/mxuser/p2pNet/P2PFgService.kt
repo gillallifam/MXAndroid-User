@@ -23,23 +23,27 @@ import kotlin.concurrent.timerTask
 
 class P2PFgService : Service() {
 
-    var localPeer: PeerConnection? = null
+    //var localPeer: PeerConnection? = null
     private lateinit var notificationManager: NotificationManager
     private var isStarted = false
 
     override fun onCreate() {
         super.onCreate()
         notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        startP2P(this)
         instance = this
-        connectPeer()
+        /*mainContext!!.runOnUiThread{
+            connectPeer()
+        }*/
+
         if (peerAutoReconnect) {
             Timer().schedule(
                 timerTask()
                 {
                     if (p2pViewModel!!.p2pState.value != "online") {
                         disconnectPeer()
-                        instance!!.connectPeer()
+                        mainContext!!.runOnUiThread{
+                            connectPeer()
+                        }
                     }
                 }, 30 * 1000, 30 * 1000
             )
@@ -91,51 +95,6 @@ class P2PFgService : Service() {
         )
         channel.lockscreenVisibility = Notification.VISIBILITY_PRIVATE
         notificationManager.createNotificationChannel(channel)
-    }
-
-    fun connectPeer() {
-        if (localPeer == null) {
-            p2pViewModel!!.p2pState.value = "connecting"
-
-            val rtcConfig = PeerConnection.RTCConfiguration(
-                arrayListOf(
-                    // adding google's standard server
-                    PeerConnection.IceServer.builder("stun:stun.l.google.com:19302").createIceServer()
-                )
-            ).apply {
-                // it's very important to use new unified sdp semantics PLAN_B is deprecated
-                sdpSemantics = PeerConnection.SdpSemantics.UNIFIED_PLAN
-            }
-            localPeer = peerConnectionFactory!!.createPeerConnection(iceServers, getPCObserver())
-
-            dataChannel = localPeer!!.createDataChannel(
-                "dataChannel-${timeID()}", DataChannel.Init()
-            )
-            dataChannel!!.registerObserver(getDataChannelObserver(dataChannel!!))
-
-            val mediaConstraints = MediaConstraints().apply {
-                mandatory.add(MediaConstraints.KeyValuePair("IceRestart", "true"))
-            }
-            localPeer!!.createOffer(
-                object : SdpObserver {
-                    override fun onCreateSuccess(sdpOffer: SessionDescription) {
-                        localPeer!!.setLocalDescription(getLocalSdpObserver(localPeer!!), sdpOffer)
-                    }
-
-                    override fun onSetSuccess() {
-                        println("Offer set success")
-                    }
-
-                    override fun onCreateFailure(p0: String?) {
-                        println("Offer create failed")
-                    }
-
-                    override fun onSetFailure(p0: String?) {
-                        println("Offer set failed")
-                    }
-                }, mediaConstraints
-            )
-        }
     }
 
     fun disconnectPeer() {

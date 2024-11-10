@@ -12,6 +12,7 @@ import br.com.marketpix.mxuser.NetworkUtils.Companion.shopApi
 import br.com.marketpix.mxuser.R
 import br.com.marketpix.mxuser.genPid
 import br.com.marketpix.mxuser.gson
+import br.com.marketpix.mxuser.timeID
 import br.com.marketpix.mxuser.types.Category
 import br.com.marketpix.mxuser.types.Cmd
 import br.com.marketpix.mxuser.types.CmdResp
@@ -24,10 +25,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import org.json.JSONException
-import org.json.JSONObject
 import org.webrtc.DataChannel
 import org.webrtc.IceCandidate
-import org.webrtc.Logging
+import org.webrtc.MediaConstraints
 import org.webrtc.MediaStream
 import org.webrtc.PeerConnection
 import org.webrtc.PeerConnection.IceServer
@@ -60,13 +60,13 @@ val coroutineExceptionHandler = CoroutineExceptionHandler { _, throwable ->
     throwable.printStackTrace()
 }
 
-fun startP2P(context: P2PFgService) {
+fun startP2P(context: MainActivity) {
     PeerConnectionFactory.initialize(
         PeerConnectionFactory.InitializationOptions.builder(context).createInitializationOptions()
     )
     val options = PeerConnectionFactory.Options()
     options.disableNetworkMonitor = true
-    Logging.enableLogToDebugOutput(Logging.Severity.LS_VERBOSE)
+    //Logging.enableLogToDebugOutput(Logging.Severity.LS_VERBOSE)
     peerConnectionFactory =
         PeerConnectionFactory.builder().setOptions(options).createPeerConnectionFactory()
     /*,
@@ -82,8 +82,9 @@ fun startP2P(context: P2PFgService) {
     "stun:stun.cbsys.net:3478",
      */
     val svAddress = arrayOf(
-        "stun:stun.l.google.com:19302",
-        //"stun:global.stun.twilio.com:3478",
+        //"stun:stun.l.google.com:19302",
+        //"stun:devserver.marketpix.com.br:3478",
+        "stun:global.stun.twilio.com:3478",
         //"stun:stun.iptel.org",
         //"stun:stun.ideasip.com",
         //"stun:stun01.sipphone.com",
@@ -95,6 +96,49 @@ fun startP2P(context: P2PFgService) {
             //.setPassword("x")
             .createIceServer()
         iceServers.add(peerIceServer1)
+    }
+}
+
+var localPeer: PeerConnection? = null
+var connectTimer1 = 0
+var connectTimer2= 0
+var candCount = 0
+var connected = false
+
+fun connectPeer() {
+    connectTimer1 = java.time.Instant.now().toEpochMilli().toInt()
+    if (localPeer == null) {
+        p2pViewModel!!.p2pState.value = "connecting"
+
+        localPeer = peerConnectionFactory!!.createPeerConnection(iceServers, getPCObserver())
+
+        dataChannel = localPeer!!.createDataChannel(
+            "dataChannel-${timeID()}", DataChannel.Init()
+        )
+        dataChannel!!.registerObserver(getDataChannelObserver(dataChannel!!))
+
+        val mediaConstraints = MediaConstraints().apply {
+            mandatory.add(MediaConstraints.KeyValuePair("IceRestart", "true"))
+        }
+        localPeer!!.createOffer(
+            object : SdpObserver {
+                override fun onCreateSuccess(sdpOffer: SessionDescription) {
+                    localPeer!!.setLocalDescription(getLocalSdpObserver(localPeer!!), sdpOffer)
+                }
+
+                override fun onSetSuccess() {
+                    println("Offer set success")
+                }
+
+                override fun onCreateFailure(p0: String?) {
+                    println("Offer create failed")
+                }
+
+                override fun onSetFailure(p0: String?) {
+                    println("Offer set failed")
+                }
+            }, mediaConstraints
+        )
     }
 }
 
@@ -142,7 +186,6 @@ fun receiveData(buffer: DataChannel.Buffer?) {
             promises.remove(cmdResp.pid)
         }
     }
-
 }
 
 fun getDataChannelObserver(dataChannel: DataChannel): DataChannel.Observer {
@@ -154,7 +197,7 @@ fun getDataChannelObserver(dataChannel: DataChannel): DataChannel.Observer {
             if (state.name == "OPEN") {
                 p2pViewModel!!.viewModelScope.launch {
                     val updateTime = p2pApi!!.shopLastUpdate()
-                    if(!updateTime.isNullOrEmpty()){
+                    if (!updateTime.isNullOrEmpty()) {
                         val updateNum = updateTime.toLong()
                         if (shopLastUpdate < updateNum) {
                             p2pViewModel!!.viewModelScope.launch {
@@ -247,8 +290,84 @@ fun getRemoteSdpObserver(peer: PeerConnection): SdpObserver {
 }
 
 @OptIn(DelicateCoroutinesApi::class)
+fun startConnection(){
+    val extras = OfferExtras(
+        peerOwner = "$deviceUUID>$deviceUUID@android.mktpix",
+        shop = targetShop,
+        userid = deviceUUID,
+        deviceUUID = deviceUUID,
+        username = "android",
+        userpass = "mktpix",
+        profile = "{name: 'User99999'}"
+    )
+    localOffer = CustomSDPClass(
+        type = "offer",
+        sdp = localPeer!!.localDescription.description,
+        extras = extras
+    )
+    GlobalScope.launch(Dispatchers.IO + coroutineExceptionHandler) {
+        val packed = localOffer?.let { PackedOffer(offer = it) }
+        try {
+            /*val respUrl =
+                shopApi.findServer("https://api2.marketpix.com.br:9510/shopServer/MarketPix1")
+            val url = "https://${respUrl.body()}/makeOffer"
+            println(url)
+            val result = shopApi.makeOffer2(url, packed)*/
+            val result = shopApi.makeOffer(packed)
+            if (result.isSuccessful) {
+                val optionsJson = result.body()!!.getAsJsonObject("OPTIONS")
+                //println(optionsJson)
+                if (optionsJson == null) {
+                    mainContext!!.runOnUiThread {
+                        Toast.makeText(mainContext, "Loja offline", Toast.LENGTH_SHORT)
+                            .show()
+                    }
+                } else {
+                    //val compressed = optionsJson.get("compressed").asString
+                    //println(compressed)
+                    //val decompressed = decompressFromUTF16(compressed)
+                    //println(decompressed)
+                    val cats = optionsJson.getAsJsonObject("shopCats")
+                    //println(cats.keySet())
+                    val catMap = mutableMapOf<String, Category>().apply {
+                        cats.keySet().forEach {
+                            put(
+                                it,
+                                gson.fromJson(cats[it], Category::class.java)
+                            )
+                        }
+                    }
+                    //println(catMap)
+                    p2pViewModel!!.filterCategories.clear()
+                    p2pViewModel!!.filterCategories.addAll(catMap.values)
+                    //val catsArr = catMap.values.map { it.name }
+                    //println(catsArr)
+                    //filterOptions = catsArr
+
+                    val answerJson = result.body()!!.getAsJsonObject("answer")
+                    if (answerJson != null) {
+                        val customAnswer =
+                            gson.fromJson(answerJson, CustomSDPClass::class.java)
+                        localPeer!!.setRemoteDescription(
+                            getRemoteSdpObserver(localPeer!!),
+                            SessionDescription(Type.ANSWER, customAnswer.sdp)
+                        )
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            p2pViewModel!!.p2pState.value = "offline"
+            mainContext!!.runOnUiThread {
+                Toast.makeText(mainContext, "Verify internet", Toast.LENGTH_SHORT)
+                    .show()
+            }
+            println(e)
+        }
+    }
+}
+
+@OptIn(DelicateCoroutinesApi::class)
 fun getPCObserver(): PeerConnection.Observer {
-    P2PFgService.instance!!.localPeer
     val pcObserver: PeerConnection.Observer = object : PeerConnection.Observer {
         val TAG: String = "PEER_CONNECTION_FACTORY"
 
@@ -259,7 +378,7 @@ fun getPCObserver(): PeerConnection.Observer {
                 if (state == "DISCONNECTED" || state == "CLOSED") {
                     mainContext!!.runOnUiThread {
                         Handler(Looper.getMainLooper()).postDelayed({
-                            P2PFgService.instance!!.connectPeer()
+                            connectPeer()
                         }, 5000)
                     }
                 }
@@ -271,19 +390,19 @@ fun getPCObserver(): PeerConnection.Observer {
             Log.d(TAG, "onIceConnectionChange ${onIceConnectionChange.name}")
             //val localPeer = P2PFgService.instance!!.localPeer
             if (state == "DISCONNECTED") {
-                val state1 = P2PFgService.instance!!.localPeer!!.connectionState().name
+                val state1 = localPeer!!.connectionState().name
                 //println(state1)
                 println("Peer disconnected.")
                 p2pViewModel!!.p2pState.value = "offline"
-                P2PFgService.instance!!.localPeer!!.dispose()
-                P2PFgService.instance!!.localPeer = null
+                localPeer!!.dispose()
+                localPeer = null
             }
             if (state == "FAILED") {
-                val state2 = P2PFgService.instance!!.localPeer!!.connectionState().name
+                val state2 = localPeer!!.connectionState().name
                 //println(state2)
                 println("Peer failed.")
                 p2pViewModel!!.p2pState.value = "offline"
-                P2PFgService.instance!!.localPeer = null
+                localPeer = null
             }
             if (state == "COMPLETED") {
                 mediaPlayer1 = MediaPlayer.create(
@@ -292,6 +411,8 @@ fun getPCObserver(): PeerConnection.Observer {
                 )
                 mediaPlayer1.start()
                 p2pViewModel!!.p2pState.value = "online"
+                println(java.time.Instant.now().toEpochMilli().toInt() - connectTimer1)
+                println(java.time.Instant.now().toEpochMilli().toInt() - connectTimer2)
             }
         }
 
@@ -300,8 +421,13 @@ fun getPCObserver(): PeerConnection.Observer {
         }
 
         override fun onIceGatheringChange(iceGatheringState: PeerConnection.IceGatheringState) {
-            Log.d(TAG, "onIceGatheringChange")
+            Log.d(TAG, "onIceGatheringChange ${iceGatheringState.name}")
+
             if (iceGatheringState.name == "COMPLETE") {
+                startConnection()
+            }
+            /*if (iceGatheringState.name == "COMPLETE") {
+                connectTimer2 = java.time.Instant.now().toEpochMilli().toInt()
                 val extras = OfferExtras(
                     peerOwner = "$deviceUUID>$deviceUUID@android.mktpix",
                     shop = targetShop,
@@ -313,17 +439,17 @@ fun getPCObserver(): PeerConnection.Observer {
                 )
                 localOffer = CustomSDPClass(
                     type = "offer",
-                    sdp = P2PFgService.instance!!.localPeer!!.localDescription.description,
+                    sdp = localPeer!!.localDescription.description,
                     extras = extras
                 )
                 GlobalScope.launch(Dispatchers.IO + coroutineExceptionHandler) {
                     val packed = localOffer?.let { PackedOffer(offer = it) }
                     try {
-                        /*val respUrl =
+                        *//*val respUrl =
                             shopApi.findServer("https://api2.marketpix.com.br:9510/shopServer/MarketPix1")
                         val url = "https://${respUrl.body()}/makeOffer"
                         println(url)
-                        val result = shopApi.makeOffer2(url, packed)*/
+                        val result = shopApi.makeOffer2(url, packed)*//*
                         val result = shopApi.makeOffer(packed)
                         if (result.isSuccessful) {
                             val optionsJson = result.body()!!.getAsJsonObject("OPTIONS")
@@ -359,8 +485,8 @@ fun getPCObserver(): PeerConnection.Observer {
                                 if (answerJson != null) {
                                     val customAnswer =
                                         gson.fromJson(answerJson, CustomSDPClass::class.java)
-                                    P2PFgService.instance!!.localPeer!!.setRemoteDescription(
-                                        getRemoteSdpObserver(P2PFgService.instance!!.localPeer!!),
+                                    localPeer!!.setRemoteDescription(
+                                        getRemoteSdpObserver(localPeer!!),
                                         SessionDescription(Type.ANSWER, customAnswer.sdp)
                                     )
                                 }
@@ -375,22 +501,22 @@ fun getPCObserver(): PeerConnection.Observer {
                         println(e)
                     }
                 }
-            }
+            }*/
         }
 
         override fun onIceCandidate(iceCandidate: IceCandidate) {
             try {
-                /*val payload = JSONObject()
-                payload.put("sdpMid", iceCandidate.sdpMid)
-                payload.put("sdpMLineIndex", iceCandidate.sdpMLineIndex)
-                payload.put("candidate", iceCandidate.sdp)
-                val candidateObject = JSONObject()*/
-                //println(iceCandidate)
-                //lp.addIceCandidate(iceCandidate.sdpMid,iceCandidate.sdpMLineIndex,iceCandidate.sdp )
-                P2PFgService.instance!!.localPeer?.addIceCandidate(iceCandidate)
-                //println(P2PFgService.instance!!.localPeer)
-                //candidateObject.put("ice", iceCandidate.toString())
-
+                if (!iceCandidate.sdp.contains("127.0.0.1") && !iceCandidate.sdp.contains("::1")) {
+                    localPeer?.addIceCandidate(iceCandidate)
+                    //println(localPeer?.localDescription)
+                    candCount += 1
+                    /*if (candCount == 2) {
+                        onIceGatheringChange(PeerConnection.IceGatheringState.COMPLETE)
+                        println("Force ice complete")
+                        candCount = 0
+                        startConnection()
+                    }*/
+                }
             } catch (e: JSONException) {
                 e.printStackTrace()
             }
