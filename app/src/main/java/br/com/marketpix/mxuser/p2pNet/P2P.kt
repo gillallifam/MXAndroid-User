@@ -1,5 +1,6 @@
 package br.com.marketpix.mxuser.p2pNet
 
+import android.content.Context.MODE_PRIVATE
 import android.content.SharedPreferences
 import android.media.MediaPlayer
 import android.os.Handler
@@ -27,6 +28,7 @@ import kotlinx.coroutines.launch
 import org.json.JSONException
 import org.webrtc.DataChannel
 import org.webrtc.IceCandidate
+import org.webrtc.Logging
 import org.webrtc.MediaConstraints
 import org.webrtc.MediaStream
 import org.webrtc.PeerConnection
@@ -50,9 +52,10 @@ var p2pApi: P2PApi? = null
 const val peerAutoReconnect = true
 var p2pPrefs: SharedPreferences? = null
 var shopLastUpdate: Long = 0
-var targetShop = "LojaExemplo1"
+//var targetShop = "LojaExemplo1"
 lateinit var mediaPlayer1: MediaPlayer
 lateinit var mediaPlayer2: MediaPlayer
+lateinit var pcObserver: PeerConnection.Observer
 
 val promises: MutableMap<String, CompletableFuture<String>> = mutableMapOf()
 
@@ -61,6 +64,7 @@ val coroutineExceptionHandler = CoroutineExceptionHandler { _, throwable ->
 }
 
 fun startP2P(context: MainActivity) {
+    p2pPrefs = context.getSharedPreferences("p2pPrefs", MODE_PRIVATE)
     PeerConnectionFactory.initialize(
         PeerConnectionFactory.InitializationOptions.builder(context).createInitializationOptions()
     )
@@ -82,9 +86,9 @@ fun startP2P(context: MainActivity) {
     "stun:stun.cbsys.net:3478",
      */
     val svAddress = arrayOf(
-        //"stun:stun.l.google.com:19302",
+        "stun:stun.l.google.com:19302",
         //"stun:devserver.marketpix.com.br:3478",
-        "stun:global.stun.twilio.com:3478",
+        //"stun:global.stun.twilio.com:3478",
         //"stun:stun.iptel.org",
         //"stun:stun.ideasip.com",
         //"stun:stun01.sipphone.com",
@@ -101,45 +105,80 @@ fun startP2P(context: MainActivity) {
 
 var localPeer: PeerConnection? = null
 var connectTimer1 = 0
-var connectTimer2= 0
-var candCount = 0
-var connected = false
+var connectTimer2 = 0
+var gatheringTimeout = 3000L
+var gatheringCompleted = false
+var isConneting = false
 
 fun connectPeer() {
+    //if (isConneting) return
+    if (localPeer != null) return
+    isConneting = true
+    //if (p2pViewModel!!.p2pState.value === "connecting") return
+    p2pViewModel!!.p2pState.value = "connecting"
+    gatheringCompleted = false
+    Handler(Looper.getMainLooper()).postDelayed({
+        if (!gatheringCompleted) pcObserver.onIceGatheringChange(PeerConnection.IceGatheringState.COMPLETE)
+    }, gatheringTimeout)
     connectTimer1 = java.time.Instant.now().toEpochMilli().toInt()
-    if (localPeer == null) {
-        p2pViewModel!!.p2pState.value = "connecting"
 
-        localPeer = peerConnectionFactory!!.createPeerConnection(iceServers, getPCObserver())
+    val rtcConfig = PeerConnection.RTCConfiguration(iceServers).apply {
+        //candidateNetworkPolicy = PeerConnection.CandidateNetworkPolicy.LOW_COST
+        continualGatheringPolicy = PeerConnection.ContinualGatheringPolicy.GATHER_ONCE
+        candidateNetworkPolicy = PeerConnection.CandidateNetworkPolicy.ALL
+        disableIPv6OnWifi = true
+        enableDscp = true
+        iceCandidatePoolSize = 2
+        iceBackupCandidatePairPingInterval = 3000
+        iceConnectionReceivingTimeout = 2000
+        //iceCheckIntervalStrongConnectivityMs = 3000
+        //iceCheckIntervalWeakConnectivityMs = 3000
+        sdpSemantics = PeerConnection.SdpSemantics.UNIFIED_PLAN
+        //turnPortPrunePolicy = PeerConnection.PortPrunePolicy.NO_PRUNE
+        //stunCandidateKeepaliveIntervalMs = 20000
+        bundlePolicy = PeerConnection.BundlePolicy.BALANCED
+        //iceTransportsType = PeerConnection.IceTransportsType.ALL
+        keyType = PeerConnection.KeyType.RSA
+        maxIPv6Networks = 1
+        ////networkPreference = PeerConnection.AdapterType.CELLULAR_4G
+        presumeWritableWhenFullyRelayed = true
+        rtcpMuxPolicy = PeerConnection.RtcpMuxPolicy.REQUIRE
+        stableWritableConnectionPingIntervalMs = 10000
+        surfaceIceCandidatesOnIceTransportTypeChanged = true
+        tcpCandidatePolicy = PeerConnection.TcpCandidatePolicy.ENABLED
 
-        dataChannel = localPeer!!.createDataChannel(
-            "dataChannel-${timeID()}", DataChannel.Init()
-        )
-        dataChannel!!.registerObserver(getDataChannelObserver(dataChannel!!))
-
-        val mediaConstraints = MediaConstraints().apply {
-            mandatory.add(MediaConstraints.KeyValuePair("IceRestart", "true"))
-        }
-        localPeer!!.createOffer(
-            object : SdpObserver {
-                override fun onCreateSuccess(sdpOffer: SessionDescription) {
-                    localPeer!!.setLocalDescription(getLocalSdpObserver(localPeer!!), sdpOffer)
-                }
-
-                override fun onSetSuccess() {
-                    println("Offer set success")
-                }
-
-                override fun onCreateFailure(p0: String?) {
-                    println("Offer create failed")
-                }
-
-                override fun onSetFailure(p0: String?) {
-                    println("Offer set failed")
-                }
-            }, mediaConstraints
-        )
     }
+    //localPeer = null
+    localPeer = peerConnectionFactory!!.createPeerConnection(rtcConfig, getPCObserver())
+
+    dataChannel = localPeer!!.createDataChannel(
+        "dataChannel-${timeID()}", DataChannel.Init()
+    )
+    dataChannel!!.registerObserver(getDataChannelObserver(dataChannel!!))
+
+    val mediaConstraints = MediaConstraints().apply {
+        mandatory.add(MediaConstraints.KeyValuePair("IceRestart", "true"))
+    }
+    localPeer!!.createOffer(
+        object : SdpObserver {
+            override fun onCreateSuccess(sdpOffer: SessionDescription) {
+                localPeer!!.setLocalDescription(getLocalSdpObserver(localPeer!!), sdpOffer)
+            }
+
+            override fun onSetSuccess() {
+                println("Offer set success")
+            }
+
+            override fun onCreateFailure(p0: String?) {
+                println("Offer create failed")
+            }
+
+            override fun onSetFailure(p0: String?) {
+                println("Offer set failed")
+            }
+        }, mediaConstraints
+    )
+
 }
 
 fun sendData(cmd: Cmd, timeout: Long = 5000): CompletableFuture<String> {
@@ -166,6 +205,9 @@ fun sendData(cmd: Cmd, timeout: Long = 5000): CompletableFuture<String> {
     } else {
         println(cmd.cmd)
         println("Data channel not open")
+        if (localPeer != null) {
+            println(localPeer!!.connectionState())
+        }
     }
     return promise
 }
@@ -290,21 +332,25 @@ fun getRemoteSdpObserver(peer: PeerConnection): SdpObserver {
 }
 
 @OptIn(DelicateCoroutinesApi::class)
-fun startConnection(){
-    val extras = OfferExtras(
+fun startConnection() {
+    val extras = p2pViewModel!!.targetShop?.let {
+        OfferExtras(
         peerOwner = "$deviceUUID>$deviceUUID@android.mktpix",
-        shop = targetShop,
+        shop = it,
         userid = deviceUUID,
         deviceUUID = deviceUUID,
         username = "android",
         userpass = "mktpix",
         profile = "{name: 'User99999'}"
     )
-    localOffer = CustomSDPClass(
+    }
+    localOffer = extras?.let {
+        CustomSDPClass(
         type = "offer",
         sdp = localPeer!!.localDescription.description,
-        extras = extras
+        extras = it
     )
+    }
     GlobalScope.launch(Dispatchers.IO + coroutineExceptionHandler) {
         val packed = localOffer?.let { PackedOffer(offer = it) }
         try {
@@ -361,14 +407,14 @@ fun startConnection(){
                 Toast.makeText(mainContext, "Verify internet", Toast.LENGTH_SHORT)
                     .show()
             }
+            e.printStackTrace()
             println(e)
         }
     }
 }
 
-@OptIn(DelicateCoroutinesApi::class)
 fun getPCObserver(): PeerConnection.Observer {
-    val pcObserver: PeerConnection.Observer = object : PeerConnection.Observer {
+    pcObserver = object : PeerConnection.Observer {
         val TAG: String = "PEER_CONNECTION_FACTORY"
 
         override fun onSignalingChange(signalingState: PeerConnection.SignalingState) {
@@ -392,17 +438,21 @@ fun getPCObserver(): PeerConnection.Observer {
             if (state == "DISCONNECTED") {
                 val state1 = localPeer!!.connectionState().name
                 //println(state1)
+                gatheringCompleted = false
                 println("Peer disconnected.")
                 p2pViewModel!!.p2pState.value = "offline"
                 localPeer!!.dispose()
                 localPeer = null
+
             }
             if (state == "FAILED") {
                 val state2 = localPeer!!.connectionState().name
                 //println(state2)
                 println("Peer failed.")
+                gatheringCompleted = false
                 p2pViewModel!!.p2pState.value = "offline"
                 localPeer = null
+                connectPeer()
             }
             if (state == "COMPLETED") {
                 mediaPlayer1 = MediaPlayer.create(
@@ -423,99 +473,17 @@ fun getPCObserver(): PeerConnection.Observer {
         override fun onIceGatheringChange(iceGatheringState: PeerConnection.IceGatheringState) {
             Log.d(TAG, "onIceGatheringChange ${iceGatheringState.name}")
 
-            if (iceGatheringState.name == "COMPLETE") {
+            if (iceGatheringState.name == "COMPLETE" && !gatheringCompleted) {
+                gatheringCompleted = true
+                connectTimer2 = java.time.Instant.now().toEpochMilli().toInt()
                 startConnection()
             }
-            /*if (iceGatheringState.name == "COMPLETE") {
-                connectTimer2 = java.time.Instant.now().toEpochMilli().toInt()
-                val extras = OfferExtras(
-                    peerOwner = "$deviceUUID>$deviceUUID@android.mktpix",
-                    shop = targetShop,
-                    userid = deviceUUID,
-                    deviceUUID = deviceUUID,
-                    username = "android",
-                    userpass = "mktpix",
-                    profile = "{name: 'User99999'}"
-                )
-                localOffer = CustomSDPClass(
-                    type = "offer",
-                    sdp = localPeer!!.localDescription.description,
-                    extras = extras
-                )
-                GlobalScope.launch(Dispatchers.IO + coroutineExceptionHandler) {
-                    val packed = localOffer?.let { PackedOffer(offer = it) }
-                    try {
-                        *//*val respUrl =
-                            shopApi.findServer("https://api2.marketpix.com.br:9510/shopServer/MarketPix1")
-                        val url = "https://${respUrl.body()}/makeOffer"
-                        println(url)
-                        val result = shopApi.makeOffer2(url, packed)*//*
-                        val result = shopApi.makeOffer(packed)
-                        if (result.isSuccessful) {
-                            val optionsJson = result.body()!!.getAsJsonObject("OPTIONS")
-                            //println(optionsJson)
-                            if (optionsJson == null) {
-                                mainContext!!.runOnUiThread {
-                                    Toast.makeText(mainContext, "Loja offline", Toast.LENGTH_SHORT)
-                                        .show()
-                                }
-                            } else {
-                                //val compressed = optionsJson.get("compressed").asString
-                                //println(compressed)
-                                //val decompressed = decompressFromUTF16(compressed)
-                                //println(decompressed)
-                                val cats = optionsJson.getAsJsonObject("shopCats")
-                                //println(cats.keySet())
-                                val catMap = mutableMapOf<String, Category>().apply {
-                                    cats.keySet().forEach {
-                                        put(
-                                            it,
-                                            gson.fromJson(cats[it], Category::class.java)
-                                        )
-                                    }
-                                }
-                                //println(catMap)
-                                p2pViewModel!!.filterCategories.clear()
-                                p2pViewModel!!.filterCategories.addAll(catMap.values)
-                                //val catsArr = catMap.values.map { it.name }
-                                //println(catsArr)
-                                //filterOptions = catsArr
-
-                                val answerJson = result.body()!!.getAsJsonObject("answer")
-                                if (answerJson != null) {
-                                    val customAnswer =
-                                        gson.fromJson(answerJson, CustomSDPClass::class.java)
-                                    localPeer!!.setRemoteDescription(
-                                        getRemoteSdpObserver(localPeer!!),
-                                        SessionDescription(Type.ANSWER, customAnswer.sdp)
-                                    )
-                                }
-                            }
-                        }
-                    } catch (e: Exception) {
-                        p2pViewModel!!.p2pState.value = "offline"
-                        mainContext!!.runOnUiThread {
-                            Toast.makeText(mainContext, "Verify internet", Toast.LENGTH_SHORT)
-                                .show()
-                        }
-                        println(e)
-                    }
-                }
-            }*/
         }
 
         override fun onIceCandidate(iceCandidate: IceCandidate) {
             try {
                 if (!iceCandidate.sdp.contains("127.0.0.1") && !iceCandidate.sdp.contains("::1")) {
                     localPeer?.addIceCandidate(iceCandidate)
-                    //println(localPeer?.localDescription)
-                    candCount += 1
-                    /*if (candCount == 2) {
-                        onIceGatheringChange(PeerConnection.IceGatheringState.COMPLETE)
-                        println("Force ice complete")
-                        candCount = 0
-                        startConnection()
-                    }*/
                 }
             } catch (e: JSONException) {
                 e.printStackTrace()

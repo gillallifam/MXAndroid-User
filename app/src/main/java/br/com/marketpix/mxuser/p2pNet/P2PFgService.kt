@@ -40,8 +40,9 @@ class P2PFgService : Service() {
                 timerTask()
                 {
                     if (p2pViewModel!!.p2pState.value != "online") {
-                        disconnectPeer()
-                        mainContext!!.runOnUiThread{
+                        if (localPeer != null) disconnectPeer()
+                        mainContext!!.runOnUiThread {
+                            println("Connect loop")
                             connectPeer()
                         }
                     }

@@ -16,6 +16,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -62,6 +64,8 @@ class MainActivity : ComponentActivity() {
     @SuppressLint("HardwareIds")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        mainContext = this
+        p2pPrefs = getSharedPreferences("p2pPrefs", MODE_PRIVATE)
         startP2P(this)
         /*val googleIdOption: GetGoogleIdOption = GetGoogleIdOption.Builder()
             .setFilterByAuthorizedAccounts(true)
@@ -87,12 +91,11 @@ class MainActivity : ComponentActivity() {
         ))
         )*/
 
-        mainContext = this
+
         mediaPlayer2 = MediaPlayer.create(
             mainContext,
             R.raw.a1
         )
-        p2pPrefs = getSharedPreferences("p2pPrefs", MODE_PRIVATE)
         mainViewModel = ViewModelProvider(this)[MainViewModel::class.java]
         p2pViewModel = ViewModelProvider(this)[P2PViewModel::class.java]
         try {
@@ -102,11 +105,7 @@ class MainActivity : ComponentActivity() {
             println(e)
         }
 
-        if (!isMyServiceRunning(P2PFgService::class.java)) {
-            P2PFgService.startService(this)
-        } else {
-            connectPeer()
-        }
+
 
         ActivityCompat.requestPermissions(
             this@MainActivity,
@@ -137,16 +136,49 @@ class MainActivity : ComponentActivity() {
                         modifier = Modifier.padding(20.dp)
                     )
 
-                    Button(
-                        onClick = {
-                            if (p2pViewModel!!.p2pState.value == "offline") {
+                    p2pViewModel!!.targetShop?.let {
+                        Text(
+                            text = it,
+                            modifier = Modifier.padding(20.dp)
+                        )
+                    }
+
+                    p2pViewModel!!.targetShop?.let {
+                        OutlinedTextField(
+                            value = it,
+                            onValueChange = { newText ->
+                                p2pPrefs!!.edit().putString("shop", newText).apply()
+                                p2pViewModel!!.targetShop = newText
+                            },
+                            label = { Text("Target Shop") },
+                            modifier = Modifier.padding(20.dp)
+                        )
+                    }
+
+                    if (p2pViewModel!!.p2pState.value == "offline") {
+                        Button(
+                            onClick = {
                                 connectPeer()
-                            }
-                            if (p2pViewModel!!.p2pState.value == "online") {
-                                P2PFgService.instance!!.disconnectPeer()
-                            }
-                        }) {
-                        Text(p2pViewModel!!.p2pState.value)
+                            }) {
+                            Text(p2pViewModel!!.p2pState.value)
+                        }
+                    }
+                    if (p2pViewModel!!.p2pState.value == "online") {
+                        OutlinedButton(
+                            onClick = {
+                                println("dasdadasdsa")
+                            }) {
+                            Text(p2pViewModel!!.p2pState.value)
+                        }
+                    }
+
+                    if (p2pViewModel!!.p2pState.value == "connecting") {
+                        OutlinedButton(
+                            onClick = {
+                                println("dasdadasdsa")
+                            }) {
+                            Text(p2pViewModel!!.p2pState.value)
+                        }
                     }
 
                     Button(
@@ -197,7 +229,13 @@ class MainActivity : ComponentActivity() {
         }
         mainViewModel.p2pState.observe(this, p2pStateObserver)
 
-        connectPeer()
+        //connectPeer()
+        if (!isMyServiceRunning(P2PFgService::class.java)) {
+            P2PFgService.startService(this)
+            connectPeer()
+        } else {
+            connectPeer()
+        }
     }
 
     /*override fun onDestroy() {

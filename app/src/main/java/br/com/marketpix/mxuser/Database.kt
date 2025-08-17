@@ -6,7 +6,7 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverter
 import androidx.room.TypeConverters
-import br.com.marketpix.mxuser.p2pNet.targetShop
+import br.com.marketpix.mxuser.p2pNet.p2pViewModel
 import br.com.marketpix.mxuser.types.Image
 import br.com.marketpix.mxuser.types.ImageDao
 import br.com.marketpix.mxuser.types.Product
@@ -27,7 +27,7 @@ fun getDatabase(context: Context): AppDatabase? {
     if (db == null) {
         db = Room.databaseBuilder(
             context,
-            AppDatabase::class.java, "MXUser-$targetShop"
+            AppDatabase::class.java, "MXUser-${p2pViewModel!!.targetShop}"
         )
             .allowMainThreadQueries()
             .fallbackToDestructiveMigration()

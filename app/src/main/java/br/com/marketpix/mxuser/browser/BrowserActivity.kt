@@ -50,7 +50,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import br.com.marketpix.mxuser.p2pNet.mainContext
 import br.com.marketpix.mxuser.p2pNet.p2pViewModel
-import br.com.marketpix.mxuser.p2pNet.targetShop
 import br.com.marketpix.mxuser.p2pNet.updateFilter
 import br.com.marketpix.mxuser.types.Product
 import br.com.marketpix.mxuser.ui.theme.MXUserTheme
@@ -272,7 +271,7 @@ class BrowserActivity : ComponentActivity() {
                                 )
                             }
 
-                            Text(text = targetShop)
+                            p2pViewModel!!.targetShop?.let { Text(text = it) }
 
                             IconButton(modifier = Modifier.size(40.dp),
                                 onClick = { p2pViewModel!!.dialogUserState.value = true }) {
