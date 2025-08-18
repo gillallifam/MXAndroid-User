@@ -95,14 +95,13 @@ class MainActivity : ComponentActivity() {
         )
         mainViewModel = ViewModelProvider(this)[MainViewModel::class.java]
         p2pViewModel = ViewModelProvider(this)[P2PViewModel::class.java]
-        try {
+
+        /*try {
             getDatabase(applicationContext)
             fillCaches()
         } catch (e: Exception) {
             println(e)
-        }
-
-
+        }*/
 
         ActivityCompat.requestPermissions(
             this@MainActivity,
