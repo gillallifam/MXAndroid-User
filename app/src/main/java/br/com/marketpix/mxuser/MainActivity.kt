@@ -3,10 +3,12 @@ package br.com.marketpix.mxuser
 import android.annotation.SuppressLint
 import android.app.ActivityManager
 import android.content.Context
+import android.content.Intent
 import android.media.MediaPlayer
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings.Secure
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.annotation.RequiresApi
@@ -18,6 +20,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
@@ -174,6 +177,21 @@ class MainActivity : ComponentActivity() {
                                 println("P2p is connecting")
                             }) {
                             Text(p2pViewModel!!.p2pState.value)
+                        }
+                    }
+
+                    LaunchedEffect(key1 = p2pViewModel!!.p2pState.value) {
+                        // O código aqui só será executado quando p2pState mudar de valor
+                        if (p2pViewModel!!.p2pState.value == "online") {
+                            startActivity(
+                                Intent(
+                                    this@MainActivity,
+                                    StartupActivity::class.java
+                                )
+                            )
+                            //Toast.makeText(mainContext, "Conectado com sucesso! Navegando...", Toast.LENGTH_SHORT).show()
+                            // Aqui você pode chamar uma função para navegar, por exemplo.
+                            // navController.navigate(...)
                         }
                     }
 
