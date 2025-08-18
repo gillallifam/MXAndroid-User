@@ -15,6 +15,7 @@ roomKtx = "2.6.1"
 roomRuntime = "2.6.1"
 streamWebrtcAndroid = "1.1.3"
 streamWebrtcAndroidKtx = "1.1.3"
+kotlinVersion = "1.9.0"
 
 [libraries]
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activityCompose" }
@@ -44,4 +45,5 @@ stream-webrtc-android-ktx = { module = "io.getstream:stream-webrtc-android-ktx",
 
 [plugins]
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+jetbrains-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlinVersion" }
 

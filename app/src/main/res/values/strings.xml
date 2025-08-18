@@ -1,6 +1,7 @@
 <resources>
-    <string name="app_name">MXUser</string>
+    <string name="app_name">MXClient</string>
     <string name="All">All</string>
     <string name="Favorites">Favorites</string>
     <string name="Cart">Basket</string>
+    <string name="title_activity_startup">Startup</string>
 </resources>

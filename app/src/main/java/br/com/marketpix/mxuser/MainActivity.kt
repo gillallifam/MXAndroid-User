@@ -3,7 +3,6 @@ package br.com.marketpix.mxuser
 import android.annotation.SuppressLint
 import android.app.ActivityManager
 import android.content.Context
-import android.content.Intent
 import android.media.MediaPlayer
 import android.os.Build
 import android.os.Bundle
@@ -17,7 +16,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -28,7 +26,6 @@ import androidx.core.app.ActivityCompat
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import br.com.marketpix.mxuser.browser.BrowserActivity
 import br.com.marketpix.mxuser.browser.DialogTmp
 import br.com.marketpix.mxuser.p2pNet.P2PApi
 import br.com.marketpix.mxuser.p2pNet.P2PFgService
@@ -132,7 +129,7 @@ class MainActivity : ComponentActivity() {
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "MXUser",
+                        text = "MXClient",
                         modifier = Modifier.padding(20.dp)
                     )
 
@@ -143,7 +140,7 @@ class MainActivity : ComponentActivity() {
                         )
                     }
 
-                    p2pViewModel!!.targetShop?.let {
+                    /*p2pViewModel!!.targetShop?.let {
                         OutlinedTextField(
                             value = it,
                             onValueChange = { newText ->
@@ -153,7 +150,7 @@ class MainActivity : ComponentActivity() {
                             label = { Text("Target Shop") },
                             modifier = Modifier.padding(20.dp)
                         )
-                    }
+                    }*/
 
                     if (p2pViewModel!!.p2pState.value == "offline") {
                         Button(
@@ -166,7 +163,7 @@ class MainActivity : ComponentActivity() {
                     if (p2pViewModel!!.p2pState.value == "online") {
                         OutlinedButton(
                             onClick = {
-                                println("dasdadasdsa")
+                                println("P2p is online")
                             }) {
                             Text(p2pViewModel!!.p2pState.value)
                         }
@@ -175,13 +172,13 @@ class MainActivity : ComponentActivity() {
                     if (p2pViewModel!!.p2pState.value == "connecting") {
                         OutlinedButton(
                             onClick = {
-                                println("dasdadasdsa")
+                                println("P2p is connecting")
                             }) {
                             Text(p2pViewModel!!.p2pState.value)
                         }
                     }
 
-                    Button(
+                    /*Button(
                         onClick = {
                             if (p2pViewModel!!.prodCache.values.isNotEmpty()) {
                                 startActivity(
@@ -193,14 +190,14 @@ class MainActivity : ComponentActivity() {
                             }
                         }) {
                         Text("Browse")
-                    }
+                    }*/
                     Button(onClick = {
                         p2pViewModel!!.viewModelScope.launch {
                             val iniTime = java.time.Instant.now().toEpochMilli().toInt()
                             val resp = p2pApi!!.peerPing2()
                             val endTime = java.time.Instant.now().toEpochMilli().toInt()
                             val totTime = endTime - iniTime
-                            if (!resp.isNullOrEmpty()) {
+                            if (resp != null) {
                                 mainViewModel.dateText = "$resp - $totTime"
                                 mediaPlayer2.seekTo(0)
                                 if (!mediaPlayer2.isPlaying) mediaPlayer2.start()
@@ -209,12 +206,29 @@ class MainActivity : ComponentActivity() {
                     }) {
                         Text("Ping")
                     }
-                    Text(mainViewModel.dateText)
+                    //Text(mainViewModel.dateText)
+
+                    Button(onClick = {
+                        println("Events")
+                        p2pViewModel!!.viewModelScope.launch {
+                            val events = p2pApi!!.reqEvents()
+                            println(events)
+                            p2pViewModel!!.cacheEvent.clear()
+                            p2pViewModel!!.cacheEvent.addAll(events)
+                        }
+                    }) {
+                        Text("Test")
+                    }
+
+                    Text(
+                        text = java.time.Instant.now().toEpochMilli().toString() + "\n" + p2pViewModel!!.cacheEvent.map { it.name }.joinToString(separator = ", "),
+                        modifier = Modifier.padding(20.dp)
+                    )
                 }
             }
         }
 
-        val hasId = p2pPrefs!!.getString("deviceUUID", "")
+        val hasId = p2pPrefs!!.getString("deviceUUID2", "")
         shopLastUpdate = p2pPrefs!!.getString("shopLastUpdate", "1")!!.toLong()
         if (hasId!!.isNotEmpty()) {
             deviceUUID = hasId
@@ -222,7 +236,8 @@ class MainActivity : ComponentActivity() {
             val baseId = timeID()
             val androidId = Secure.getString(this.contentResolver, Secure.ANDROID_ID)
             deviceUUID = "${baseId}-${androidId}"
-            p2pPrefs!!.edit().putString("deviceUUID", deviceUUID).apply()
+            println(deviceUUID)
+            p2pPrefs!!.edit().putString("deviceUUID2", deviceUUID).apply()
         }
         val p2pStateObserver = Observer<String> { stateStr ->
             //if (stateStr == "online") this.startActivity(Intent(this, BrowserActivity::class.java))

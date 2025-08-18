@@ -1,12 +1,15 @@
 package br.com.marketpix.mxuser.p2pNet
 
+import br.com.marketpix.mxuser.gson
 import br.com.marketpix.mxuser.types.Cmd
 import br.com.marketpix.mxuser.types.ImgLoad
+import br.com.marketpix.mxuser.types.TEvent
+import com.google.gson.JsonElement
 import kotlinx.coroutines.future.await
 import java.util.concurrent.CompletableFuture
 
 class P2PApi {
-    suspend fun peerPing2(retry: Int = 1): String? {
+    suspend fun peerPing2(retry: Int = 1): JsonElement? {
         return sendData(
             Cmd(
                 cmd = "ping2",
@@ -15,7 +18,23 @@ class P2PApi {
             )
         ).await()
     }
-    suspend fun shopLastUpdate(): String? {
+
+    suspend fun reqEvents(retry: Int = 1): Array<TEvent> {
+
+        val resp = sendData(
+            Cmd(
+                cmd = "req-Events",
+                retry = retry,
+                from = "$deviceUUID>$deviceUUID@android.mktpix"
+            )
+        ).await()
+
+        val events = gson.fromJson(resp, Array<TEvent>::class.java)
+
+        return events
+    }
+
+    suspend fun shopLastUpdate(): JsonElement? {
         return sendData(
             Cmd(
                 cmd = "shopLastUpdate2",
@@ -23,7 +42,8 @@ class P2PApi {
             )
         ).await()
     }
-    fun getProduct(productId: String): CompletableFuture<String> {
+
+    fun getProduct(productId: String): CompletableFuture<JsonElement> {
         return sendData(
             Cmd(
                 cmd = "reqProd2",
@@ -32,7 +52,8 @@ class P2PApi {
             )
         )
     }
-    suspend fun getImage(imageId: String, retry: Int = 3): String? {
+
+    suspend fun getImage(imageId: String, retry: Int = 3): JsonElement? {
         return sendData(
             Cmd(
                 cmd = "reqImg2",
@@ -42,7 +63,8 @@ class P2PApi {
             )
         ).await()
     }
-    suspend fun updateProducts(age: Long = 0): String? {
+
+    suspend fun updateProducts(age: Long = 0): JsonElement? {
         return sendData(
             Cmd(
                 cmd = "reqProducts2",
@@ -51,6 +73,7 @@ class P2PApi {
             )
         ).await()
     }
+
     companion object {
         val instance = P2PApi()
     }

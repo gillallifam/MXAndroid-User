@@ -11,13 +11,6 @@ import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import br.com.marketpix.mxuser.MainActivity
 import br.com.marketpix.mxuser.R
-import br.com.marketpix.mxuser.timeID
-import org.webrtc.DataChannel
-import org.webrtc.Logging
-import org.webrtc.MediaConstraints
-import org.webrtc.PeerConnection
-import org.webrtc.SdpObserver
-import org.webrtc.SessionDescription
 import java.util.Timer
 import kotlin.concurrent.timerTask
 

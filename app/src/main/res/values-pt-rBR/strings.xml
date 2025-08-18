@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">MXUser</string>
+    <string name="app_name">MXClient</string>
     <string name="All">Todos</string>
     <string name="Favorites">Favoritos</string>
     <string name="Cart">Cesta</string>

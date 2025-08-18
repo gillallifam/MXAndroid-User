@@ -9,6 +9,7 @@ import androidx.lifecycle.ViewModel
 import br.com.marketpix.mxuser.types.Category
 import br.com.marketpix.mxuser.types.Image
 import br.com.marketpix.mxuser.types.Product
+import br.com.marketpix.mxuser.types.TEvent
 
 class P2PViewModel : ViewModel() {
     var p2pState = mutableStateOf("")
@@ -30,4 +31,5 @@ class P2PViewModel : ViewModel() {
     var filterCategories = mutableStateListOf<Category>()
     var selectedProducts = mutableStateListOf<Product>()
     lateinit var selectedProd: Product
+    var cacheEvent = mutableStateListOf<TEvent>()
 }

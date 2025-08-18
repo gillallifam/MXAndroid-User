@@ -7,19 +7,18 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import android.widget.Toast
-import androidx.lifecycle.viewModelScope
 import br.com.marketpix.mxuser.MainActivity
 import br.com.marketpix.mxuser.NetworkUtils.Companion.shopApi
 import br.com.marketpix.mxuser.R
 import br.com.marketpix.mxuser.genPid
 import br.com.marketpix.mxuser.gson
 import br.com.marketpix.mxuser.timeID
-import br.com.marketpix.mxuser.types.Category
 import br.com.marketpix.mxuser.types.Cmd
 import br.com.marketpix.mxuser.types.CmdResp
 import br.com.marketpix.mxuser.types.CustomSDPClass
 import br.com.marketpix.mxuser.types.OfferExtras
 import br.com.marketpix.mxuser.types.PackedOffer
+import com.google.gson.JsonElement
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
@@ -28,7 +27,6 @@ import kotlinx.coroutines.launch
 import org.json.JSONException
 import org.webrtc.DataChannel
 import org.webrtc.IceCandidate
-import org.webrtc.Logging
 import org.webrtc.MediaConstraints
 import org.webrtc.MediaStream
 import org.webrtc.PeerConnection
@@ -57,7 +55,7 @@ lateinit var mediaPlayer1: MediaPlayer
 lateinit var mediaPlayer2: MediaPlayer
 lateinit var pcObserver: PeerConnection.Observer
 
-val promises: MutableMap<String, CompletableFuture<String>> = mutableMapOf()
+val promises: MutableMap<String, CompletableFuture<JsonElement>> = mutableMapOf()
 
 val coroutineExceptionHandler = CoroutineExceptionHandler { _, throwable ->
     throwable.printStackTrace()
@@ -181,12 +179,12 @@ fun connectPeer() {
 
 }
 
-fun sendData(cmd: Cmd, timeout: Long = 5000): CompletableFuture<String> {
-    val promise = CompletableFuture<String>()
+fun sendData(cmd: Cmd, timeout: Long = 5000): CompletableFuture<JsonElement> {
+    val promise = CompletableFuture<JsonElement>()
     Handler(Looper.getMainLooper()).postDelayed({
         promises[cmd.pid]?.let {
             if (cmd.attempts == cmd.retry) {
-                it.complete("")
+                it.complete(null)
                 promises.remove(cmd.pid)
             } else {
                 cmd.attempts += 1
@@ -237,17 +235,17 @@ fun getDataChannelObserver(dataChannel: DataChannel): DataChannel.Observer {
         override fun onStateChange() {
             val state = dataChannel.state()
             if (state.name == "OPEN") {
-                p2pViewModel!!.viewModelScope.launch {
+                /*p2pViewModel!!.viewModelScope.launch {
                     val updateTime = p2pApi!!.shopLastUpdate()
                     if (!updateTime.isNullOrEmpty()) {
                         val updateNum = updateTime.toLong()
                         if (shopLastUpdate < updateNum) {
                             p2pViewModel!!.viewModelScope.launch {
-                                updateCaches(shopLastUpdate, updateTime)
+                                //updateCaches(shopLastUpdate, updateTime)
                             }
                         }
                     }
-                }
+                }*/
             }
             if (state.name == "CLOSED") {
                 dataChannel.dispose()
@@ -354,41 +352,19 @@ fun startConnection() {
     GlobalScope.launch(Dispatchers.IO + coroutineExceptionHandler) {
         val packed = localOffer?.let { PackedOffer(offer = it) }
         try {
-            /*val respUrl =
-                shopApi.findServer("https://api2.marketpix.com.br:9510/shopServer/MarketPix1")
-            val url = "https://${respUrl.body()}/makeOffer"
-            println(url)
-            val result = shopApi.makeOffer2(url, packed)*/
             val result = shopApi.makeOffer(packed)
             if (result.isSuccessful) {
+                println("##Success offer")
                 val optionsJson = result.body()!!.getAsJsonObject("OPTIONS")
-                //println(optionsJson)
+                println(optionsJson)
                 if (optionsJson == null) {
+
                     mainContext!!.runOnUiThread {
                         Toast.makeText(mainContext, "Loja offline", Toast.LENGTH_SHORT)
                             .show()
                     }
                 } else {
-                    //val compressed = optionsJson.get("compressed").asString
-                    //println(compressed)
-                    //val decompressed = decompressFromUTF16(compressed)
-                    //println(decompressed)
-                    val cats = optionsJson.getAsJsonObject("shopCats")
-                    //println(cats.keySet())
-                    val catMap = mutableMapOf<String, Category>().apply {
-                        cats.keySet().forEach {
-                            put(
-                                it,
-                                gson.fromJson(cats[it], Category::class.java)
-                            )
-                        }
-                    }
-                    //println(catMap)
-                    p2pViewModel!!.filterCategories.clear()
-                    p2pViewModel!!.filterCategories.addAll(catMap.values)
-                    //val catsArr = catMap.values.map { it.name }
-                    //println(catsArr)
-                    //filterOptions = catsArr
+                    p2pViewModel!!.targetShop = optionsJson.get("schoolName").asString
 
                     val answerJson = result.body()!!.getAsJsonObject("answer")
                     if (answerJson != null) {

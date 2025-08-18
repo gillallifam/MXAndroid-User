@@ -14,19 +14,6 @@ fun handleBroadcast(cmdResp: CmdResp) {
             mediaPlayer2.seekTo(0)
             if (!mediaPlayer2.isPlaying) mediaPlayer2.start()
         }
-        "prodsUpdate" -> {
-            p2pViewModel!!.viewModelScope.launch {
-                val updateTime = p2pApi!!.shopLastUpdate()
-                if(!updateTime.isNullOrEmpty()){
-                    val updateNum = updateTime.toLong()
-                    if (shopLastUpdate < updateNum) {
-                        p2pViewModel!!.viewModelScope.launch {
-                            updateCaches(shopLastUpdate, updateTime)
-                        }
-                    }
-                }
-            }
-        }
     }
 }
 

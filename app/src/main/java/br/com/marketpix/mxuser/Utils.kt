@@ -29,11 +29,12 @@ fun decodeBMP (encodedString: String): Bitmap {
     return BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
 }
 
-fun timeID (): String {
-    return Integer.toString(
+fun timeID (): Long {
+    return java.time.Instant.now().toEpochMilli()
+    /*return Integer.toString(
         java.time.Instant.now().toEpochMilli().toInt(),
         Character.MAX_RADIX
-    )
+    )*/
 }
 
 fun getRandomString(length: Int) : String {

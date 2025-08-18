@@ -1,5 +1,7 @@
 package br.com.marketpix.mxuser.types
 
+import com.google.gson.JsonElement
+
 data class OfferExtras(
     val peerOwner: String,
     val peerProfType: String = "user",
@@ -36,7 +38,7 @@ data class CmdResp(
     var pid: String? = null,
     val cmd: String,
     var status: String = "error",
-    val content: String,
+    val content: JsonElement,
     val extras: String?,
 )
 
@@ -48,6 +50,13 @@ data class ImageModel(
 data class ImgLoad(
     val cod: String? = null,
     val img: String? = null,
+)
+
+data class TEvent(
+    val id: Number,
+    val name: String,
+    val info: String,
+    val date: String,
 )
 
 data class Category(
